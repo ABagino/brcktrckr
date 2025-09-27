@@ -1,103 +1,257 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import { useState, useEffect, useMemo } from "react"
+import { supabase } from "@/utils/supabase/client"
+
+export default function SetPage() {
+  const [inputValue, setInputValue] = useState("")
+  const [searchValue, setSearchValue] = useState("")
+  const [matchedSet, setMatchedSet] = useState<any>(null)
+  const [parsedInventory, setParsedInventory] = useState<any[]>([])
+  const [totalValueSum, setTotalValueSum] = useState(0)
+  const [setNotFound, setSetNotFound] = useState(false)
+  const [inventoryMissing, setInventoryMissing] = useState(false)
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+    key: "",
+    direction: "asc",
+  })
+
+  const handleGoClick = () => setSearchValue(inputValue)
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") handleGoClick()
+  }
+
+  useEffect(() => {
+    if (!searchValue) return
+    setMatchedSet(null)
+    setParsedInventory([])
+    setTotalValueSum(0)
+    setSetNotFound(false)
+    setInventoryMissing(false)
+
+    const loadData = async () => {
+      try {
+        // 🔹 Look up set
+        const { data: setData, error: setError } = await supabase.rpc("get_set", {
+          search_number: searchValue,
+        })
+        if (setError) throw setError
+        if (!setData || setData.length === 0) return setSetNotFound(true)
+
+        const foundSet = setData[0]
+        setMatchedSet(foundSet)
+
+        // 🔹 Look up inventory
+        const { data: inventory, error: invError } = await supabase.rpc("get_inventory", {
+          set_number: foundSet.SetNumber,
+        })
+        if (invError) throw invError
+        if (!inventory || inventory.length === 0) return setInventoryMissing(true)
+
+        // 🔹 Enrich rows
+        const enriched = inventory.map((item) => {
+          const soldTotal = parseFloat(item.SoldTotalQuantity) || 0
+          const stockTotal = parseFloat(item.StockTotalQuantity) || 0
+          const soldUnit = parseFloat(item.SoldUnitQuantity) || 0
+          const stockUnit = parseFloat(item.StockUnitQuantity) || 0
+          const price = parseFloat(item.SoldAvgPrice) || 0
+          const quantity = parseFloat(item.Quantity) || 0
+          const staple = stockTotal ? soldTotal / stockTotal : 0
+          const hotness = stockUnit ? soldUnit / stockUnit : 0
+          const pieceTimeValue = price * staple * hotness
+          const totalValue = quantity * pieceTimeValue
+          return {
+            ...item,
+            Staple: staple.toFixed(4),
+            Hotness: hotness.toFixed(4),
+            ValueMultiply: (staple * hotness).toFixed(4),
+            PieceTimeValue: pieceTimeValue.toFixed(4),
+            TotalValue: totalValue.toFixed(4),
+          }
+        })
+
+        setParsedInventory(enriched)
+        setTotalValueSum(enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue), 0))
+      } catch (err) {
+        console.error(err)
+        setSetNotFound(true)
+      }
+    }
+    loadData()
+  }, [searchValue])
+
+  const sortedInventory = useMemo(() => {
+    if (!sortConfig.key) return parsedInventory
+    return [...parsedInventory].sort((a, b) => {
+      const { key, direction } = sortConfig
+      const cmp = ["ItemNumber", "Name", "ColourName"].includes(key)
+        ? String(a[key] || "").localeCompare(String(b[key] || ""))
+        : (parseFloat(a[key]) || 0) - (parseFloat(b[key]) || 0)
+      return direction === "asc" ? cmp : -cmp
+    })
+  }, [parsedInventory, sortConfig])
+
+  const handleSort = (key: string) =>
+    setSortConfig((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }))
+
+  const renderSortArrow = (key: string) =>
+    sortConfig.key === key ? (sortConfig.direction === "asc" ? " ↑" : " ↓") : ""
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
+    <div className="font-sans p-5 min-h-screen max-w-[95%] mx-auto bg-gray-100">
+      {/* Search Bar */}
+      <div className="mb-5">
+        <input
+          type="text"
+          placeholder="Enter Set Number"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="p-2.5 border border-gray-300 rounded mr-2 w-52 outline-none"
         />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+        <button
+          onClick={handleGoClick}
+          className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+        >
+          Go
+        </button>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* Error */}
+      {setNotFound && (
+        <p className="text-red-600 mb-4">Set '{searchValue}' not found.</p>
+      )}
+
+      {/* Info Box */}
+      {matchedSet && !setNotFound && (
+        <div className="flex justify-between items-center border border-gray-200 rounded-lg p-4 bg-white shadow mb-5">
+          <div>
+            <p className="my-1">
+              <strong>Set Number:</strong> {matchedSet.SetNumber}
+            </p>
+            <p className="my-1">
+              <strong>Set Name:</strong> {matchedSet.SetName}
+            </p>
+            <p className="my-1">
+              <strong>Theme:</strong> {matchedSet.Theme}
+            </p>
+          </div>
+          <div className="text-2xl font-bold text-right">
+            Total Value: ${totalValueSum.toFixed(2)}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
+
+      {/* Inventory Missing */}
+      {inventoryMissing && matchedSet && (
+        <p className="mt-4">No inventory found; queued for update.</p>
+      )}
+
+      {/* Table */}
+      {parsedInventory.length > 0 && (
+        <div className="w-full overflow-x-auto">
+          <table className="w-full table-auto border-collapse bg-white shadow">
+            <thead>
+              <tr>
+                {[
+                  "ItemNumber",
+                  "Name",
+                  "ColourName",
+                  "Quantity",
+                  "SoldAvgPrice",
+                  "SoldTotalQuantity",
+                  "SoldUnitQuantity",
+                  "StockAvgPrice",
+                  "StockTotalQuantity",
+                  "StockUnitQuantity",
+                  "Staple",
+                  "Hotness",
+                  "ValueMultiply",
+                  "PieceTimeValue",
+                  "TotalValue",
+                ].map((col) => (
+                  <th
+                    key={col}
+                    onClick={() => handleSort(col)}
+                    className="sticky top-0 bg-gray-800 text-white p-3 text-left cursor-pointer"
+                  >
+                    {col}
+                    {renderSortArrow(col)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {sortedInventory.map((item, i) => (
+                <tr
+                  key={`${item.ItemNumber}-${item.ColourID}`}
+                  className={i % 2 === 0 ? "bg-gray-50" : ""}
+                >
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    <div className="flex items-center gap-2">
+                      <img
+                        loading="lazy"
+                        src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
+                        alt={item.ItemNumber}
+                        width={32}
+                        height={32}
+                        onError={(e) => e.currentTarget.remove()}
+                        className="align-middle"
+                      />
+                      <span>{item.ItemNumber}</span>
+                    </div>
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.Name}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.ColourName}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.Quantity}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.SoldAvgPrice}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.SoldTotalQuantity}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.SoldUnitQuantity}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.StockAvgPrice}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.StockTotalQuantity}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.StockUnitQuantity}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.Staple}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.Hotness}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.ValueMultiply}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.PieceTimeValue}
+                  </td>
+                  <td className="p-3 border-b border-gray-200 align-middle">
+                    {item.TotalValue}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
-  );
+  )
 }
