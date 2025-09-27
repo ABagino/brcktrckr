@@ -1,19 +1,49 @@
 "use client"
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import { useState, useEffect, useMemo } from "react"
 import { supabase } from "@/utils/supabase/client"
+
+// 🔹 Supabase return types
+interface SetRecord {
+  SetNumber: string
+  SetName: string
+  Theme: string
+}
+
+interface InventoryRecord {
+  ItemNumber: string
+  Name: string
+  ColourID: number
+  ColourName: string
+  Quantity: number
+  SoldAvgPrice: string | null
+  SoldTotalQuantity: string | null
+  SoldUnitQuantity: string | null
+  StockAvgPrice: string | null
+  StockTotalQuantity: string | null
+  StockUnitQuantity: string | null
+  Staple?: string
+  Hotness?: string
+  ValueMultiply?: string
+  PieceTimeValue?: string
+  TotalValue?: string
+}
+
+// 🔹 Valid keys for sorting
+type SortableKey = keyof InventoryRecord
 
 export default function SetPage() {
   const [inputValue, setInputValue] = useState("")
   const [searchValue, setSearchValue] = useState("")
-  const [matchedSet, setMatchedSet] = useState<any>(null)
-  const [parsedInventory, setParsedInventory] = useState<any[]>([])
+  const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
+  const [parsedInventory, setParsedInventory] = useState<InventoryRecord[]>([])
   const [totalValueSum, setTotalValueSum] = useState(0)
   const [setNotFound, setSetNotFound] = useState(false)
   const [inventoryMissing, setInventoryMissing] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({
+  const [sortConfig, setSortConfig] = useState<{
+    key: SortableKey | ""
+    direction: "asc" | "desc"
+  }>({
     key: "",
     direction: "asc",
   })
@@ -40,40 +70,47 @@ export default function SetPage() {
         if (setError) throw setError
         if (!setData || setData.length === 0) return setSetNotFound(true)
 
-        const foundSet = setData[0]
+        const foundSet = setData[0] as SetRecord
         setMatchedSet(foundSet)
 
         // 🔹 Look up inventory
-        const { data: inventory, error: invError } = await supabase.rpc("get_inventory", {
-          set_number: foundSet.SetNumber,
-        })
-        if (invError) throw invError
-        if (!inventory || inventory.length === 0) return setInventoryMissing(true)
-
-        // 🔹 Enrich rows
-        const enriched = inventory.map((item) => {
-          const soldTotal = parseFloat(item.SoldTotalQuantity) || 0
-          const stockTotal = parseFloat(item.StockTotalQuantity) || 0
-          const soldUnit = parseFloat(item.SoldUnitQuantity) || 0
-          const stockUnit = parseFloat(item.StockUnitQuantity) || 0
-          const price = parseFloat(item.SoldAvgPrice) || 0
-          const quantity = parseFloat(item.Quantity) || 0
-          const staple = stockTotal ? soldTotal / stockTotal : 0
-          const hotness = stockUnit ? soldUnit / stockUnit : 0
-          const pieceTimeValue = price * staple * hotness
-          const totalValue = quantity * pieceTimeValue
-          return {
-            ...item,
-            Staple: staple.toFixed(4),
-            Hotness: hotness.toFixed(4),
-            ValueMultiply: (staple * hotness).toFixed(4),
-            PieceTimeValue: pieceTimeValue.toFixed(4),
-            TotalValue: totalValue.toFixed(4),
+        const { data: inventory, error: invError } = await supabase.rpc(
+          "get_inventory",
+          {
+            set_number: foundSet.SetNumber,
           }
-        })
+        )
+        if (invError) throw invError
+        if (!inventory || inventory.length === 0)
+          return setInventoryMissing(true)
+
+        const enriched: InventoryRecord[] = (inventory as InventoryRecord[]).map(
+          (item) => {
+            const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
+            const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
+            const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
+            const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
+            const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
+            const quantity = item.Quantity || 0
+            const staple = stockTotal ? soldTotal / stockTotal : 0
+            const hotness = stockUnit ? soldUnit / stockUnit : 0
+            const pieceTimeValue = price * staple * hotness
+            const totalValue = quantity * pieceTimeValue
+            return {
+              ...item,
+              Staple: staple.toFixed(4),
+              Hotness: hotness.toFixed(4),
+              ValueMultiply: (staple * hotness).toFixed(4),
+              PieceTimeValue: pieceTimeValue.toFixed(4),
+              TotalValue: totalValue.toFixed(4),
+            }
+          }
+        )
 
         setParsedInventory(enriched)
-        setTotalValueSum(enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue), 0))
+        setTotalValueSum(
+          enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue ?? "0"), 0)
+        )
       } catch (err) {
         console.error(err)
         setSetNotFound(true)
@@ -83,27 +120,39 @@ export default function SetPage() {
   }, [searchValue])
 
   const sortedInventory = useMemo(() => {
-    if (!sortConfig.key) return parsedInventory
-    return [...parsedInventory].sort((a, b) => {
-      const { key, direction } = sortConfig
-      const cmp = ["ItemNumber", "Name", "ColourName"].includes(key)
-        ? String(a[key] || "").localeCompare(String(b[key] || ""))
-        : (parseFloat(a[key]) || 0) - (parseFloat(b[key]) || 0)
-      return direction === "asc" ? cmp : -cmp
-    })
-  }, [parsedInventory, sortConfig])
+  if (!sortConfig.key) return parsedInventory
 
-  const handleSort = (key: string) =>
+  const { key, direction } = sortConfig
+
+  return [...parsedInventory].sort((a, b) => {
+    if (!key) return 0 // ✅ ensures key is never ""
+    const cmp =
+      key === "ItemNumber" || key === "Name" || key === "ColourName"
+        ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
+        : (parseFloat(a[key] as string) || 0) -
+          (parseFloat(b[key] as string) || 0)
+
+    return direction === "asc" ? cmp : -cmp
+  })
+}, [parsedInventory, sortConfig])
+
+
+  const handleSort = (key: SortableKey) =>
     setSortConfig((prev) => ({
       key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+      direction:
+        prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }))
 
-  const renderSortArrow = (key: string) =>
-    sortConfig.key === key ? (sortConfig.direction === "asc" ? " ↑" : " ↓") : ""
+  const renderSortArrow = (key: SortableKey) =>
+    sortConfig.key === key
+      ? sortConfig.direction === "asc"
+        ? " ↑"
+        : " ↓"
+      : ""
 
   return (
-    <div className="font-sans p-5 min-h-screen max-w-[95%] mx-auto bg-gray-100">
+    <div className="font-sans p-5 min-h-screen w-full bg-gray-100">
       {/* Search Bar */}
       <div className="mb-5">
         <input
@@ -124,7 +173,9 @@ export default function SetPage() {
 
       {/* Error */}
       {setNotFound && (
-        <p className="text-red-600 mb-4">Set &apos;{searchValue}&apos; not found.</p>
+        <p className="text-red-600 mb-4">
+          Set &apos;{searchValue}&apos; not found.
+        </p>
       )}
 
       {/* Info Box */}
@@ -177,11 +228,11 @@ export default function SetPage() {
                 ].map((col) => (
                   <th
                     key={col}
-                    onClick={() => handleSort(col)}
+                    onClick={() => handleSort(col as SortableKey)}
                     className="sticky top-0 bg-gray-800 text-white p-3 text-left cursor-pointer"
                   >
                     {col}
-                    {renderSortArrow(col)}
+                    {renderSortArrow(col as SortableKey)}
                   </th>
                 ))}
               </tr>
