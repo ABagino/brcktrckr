@@ -124,7 +124,7 @@ export default function SetPage() {
 
       {/* Error */}
       {setNotFound && (
-        <p className="text-red-600 mb-4">Set '{searchValue}' not found.</p>
+        <p className="text-red-600 mb-4">Set &apos;{searchValue}&apos; not found.</p>
       )}
 
       {/* Info Box */}
