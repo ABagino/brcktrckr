@@ -29,8 +29,26 @@ interface InventoryRecord {
   TotalValue?: string
 }
 
-// 🔹 Valid keys for sorting
 type SortableKey = keyof InventoryRecord
+
+// 🔹 Table headers mapping (label shown → key used for sorting)
+const headers: { key: SortableKey; label: string }[] = [
+  { key: "ItemNumber", label: "Item Number" },
+  { key: "Name", label: "Name" },
+  { key: "ColourName", label: "Colour Name" },
+  { key: "Quantity", label: "Quantity" },
+  { key: "SoldAvgPrice", label: "Sold Avg Price" },
+  { key: "SoldTotalQuantity", label: "Sold Total Quantity" },
+  { key: "SoldUnitQuantity", label: "Sold Unit Quantity" },
+  { key: "StockAvgPrice", label: "Stock Avg Price" },
+  { key: "StockTotalQuantity", label: "Stock Total Quantity" },
+  { key: "StockUnitQuantity", label: "Stock Unit Quantity" },
+  { key: "Staple", label: "Staple" },
+  { key: "Hotness", label: "Hotness" },
+  { key: "ValueMultiply", label: "Value Multiply" },
+  { key: "PieceTimeValue", label: "Piece Time Value" },
+  { key: "TotalValue", label: "Total Value" },
+]
 
 export default function SetPage() {
   const [inputValue, setInputValue] = useState("")
@@ -41,10 +59,10 @@ export default function SetPage() {
   const [setNotFound, setSetNotFound] = useState(false)
   const [inventoryMissing, setInventoryMissing] = useState(false)
   const [sortConfig, setSortConfig] = useState<{
-    key: SortableKey | ""
+    key: SortableKey | null
     direction: "asc" | "desc"
   }>({
-    key: "",
+    key: null,
     direction: "asc",
   })
 
@@ -76,14 +94,12 @@ export default function SetPage() {
         // 🔹 Look up inventory
         const { data: inventory, error: invError } = await supabase.rpc(
           "get_inventory",
-          {
-            set_number: foundSet.SetNumber,
-          }
+          { set_number: foundSet.SetNumber }
         )
         if (invError) throw invError
-        if (!inventory || inventory.length === 0)
-          return setInventoryMissing(true)
+        if (!inventory || inventory.length === 0) return setInventoryMissing(true)
 
+        // 🔹 Enrich rows
         const enriched: InventoryRecord[] = (inventory as InventoryRecord[]).map(
           (item) => {
             const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
@@ -120,28 +136,23 @@ export default function SetPage() {
   }, [searchValue])
 
   const sortedInventory = useMemo(() => {
-  if (!sortConfig.key) return parsedInventory
+    if (!sortConfig.key) return parsedInventory
+    const { key, direction } = sortConfig
 
-  const { key, direction } = sortConfig
-
-  return [...parsedInventory].sort((a, b) => {
-    if (!key) return 0 // ✅ ensures key is never ""
-    const cmp =
-      key === "ItemNumber" || key === "Name" || key === "ColourName"
-        ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
-        : (parseFloat(a[key] as string) || 0) -
-          (parseFloat(b[key] as string) || 0)
-
-    return direction === "asc" ? cmp : -cmp
-  })
-}, [parsedInventory, sortConfig])
-
+    return [...parsedInventory].sort((a, b) => {
+      const cmp =
+        key === "ItemNumber" || key === "Name" || key === "ColourName"
+          ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
+          : (parseFloat(a[key] as string) || 0) -
+            (parseFloat(b[key] as string) || 0)
+      return direction === "asc" ? cmp : -cmp
+    })
+  }, [parsedInventory, sortConfig])
 
   const handleSort = (key: SortableKey) =>
     setSortConfig((prev) => ({
       key,
-      direction:
-        prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }))
 
   const renderSortArrow = (key: SortableKey) =>
@@ -209,30 +220,14 @@ export default function SetPage() {
           <table className="w-full table-auto border-collapse bg-white shadow">
             <thead>
               <tr>
-                {[
-                  "ItemNumber",
-                  "Name",
-                  "ColourName",
-                  "Quantity",
-                  "SoldAvgPrice",
-                  "SoldTotalQuantity",
-                  "SoldUnitQuantity",
-                  "StockAvgPrice",
-                  "StockTotalQuantity",
-                  "StockUnitQuantity",
-                  "Staple",
-                  "Hotness",
-                  "ValueMultiply",
-                  "PieceTimeValue",
-                  "TotalValue",
-                ].map((col) => (
+                {headers.map(({ key, label }) => (
                   <th
-                    key={col}
-                    onClick={() => handleSort(col as SortableKey)}
+                    key={key}
+                    onClick={() => handleSort(key)}
                     className="sticky top-0 bg-gray-800 text-white p-3 text-left cursor-pointer"
                   >
-                    {col}
-                    {renderSortArrow(col as SortableKey)}
+                    {label}
+                    {renderSortArrow(key)}
                   </th>
                 ))}
               </tr>
