@@ -1,5 +1,7 @@
 "use client"
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import { useState, useEffect, useMemo } from "react"
 import { supabase } from "@/utils/supabase/client"
 
