@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react"
 import { supabase } from "@/utils/supabase/client"
+import Image from "next/image"
 
 // 🔹 Supabase return types
 interface SetRecord {
@@ -240,14 +241,16 @@ export default function SetPage() {
                 >
                   <td className="p-3 border-b border-gray-200 align-middle">
                     <div className="flex items-center gap-2">
-                      <img
-                        loading="lazy"
+                      <Image
                         src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
                         alt={item.ItemNumber}
                         width={32}
                         height={32}
-                        onError={(e) => e.currentTarget.remove()}
                         className="align-middle"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement
+                          target.style.display = "none"
+                        }}
                       />
                       <span>{item.ItemNumber}</span>
                     </div>
