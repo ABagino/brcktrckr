@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, CSSProperties, ReactNode } from "react";
 import { gsap } from "gsap";
 
 const DEFAULT_PARTICLE_COUNT = 12;
@@ -42,7 +42,7 @@ const cardData = [
   },
 ];
 
-const createParticleElement = (x: number, y: number, color = DEFAULT_GLOW_COLOR) => {
+const createParticleElement = (x: number, y: number, color = DEFAULT_GLOW_COLOR): HTMLDivElement => {
   const el = document.createElement("div");
   el.className = "particle";
   el.style.cssText = `
@@ -82,6 +82,17 @@ const updateCardGlowProperties = (
 };
 
 // ✨ Particle Card
+interface ParticleCardProps {
+  children: ReactNode;
+  className?: string;
+  disableAnimations?: boolean;
+  style?: CSSProperties;
+  particleCount?: number;
+  glowColor?: string;
+  enableTilt?: boolean;
+  enableMagnetism?: boolean;
+}
+
 const ParticleCard = ({
   children,
   className = "",
@@ -90,16 +101,15 @@ const ParticleCard = ({
   particleCount = DEFAULT_PARTICLE_COUNT,
   glowColor = DEFAULT_GLOW_COLOR,
   enableTilt = true,
-  clickEffect = false,
   enableMagnetism = false,
-}: any) => {
+}: ParticleCardProps) => {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const particlesRef = useRef<HTMLDivElement[]>([]);
-  const timeoutsRef = useRef<any[]>([]);
+  const timeoutsRef = useRef<number[]>([]);
   const isHoveredRef = useRef(false);
   const memoizedParticles = useRef<HTMLDivElement[]>([]);
   const particlesInitialized = useRef(false);
-  const magnetismAnimationRef = useRef<any>(null);
+  const magnetismAnimationRef = useRef<gsap.core.Tween | null>(null);
 
   const initializeParticles = useCallback(() => {
     if (particlesInitialized.current || !cardRef.current) return;
@@ -132,7 +142,7 @@ const ParticleCard = ({
     if (!particlesInitialized.current) initializeParticles();
 
     memoizedParticles.current.forEach((particle, index) => {
-      const timeoutId = setTimeout(() => {
+      const timeoutId = window.setTimeout(() => {
         if (!isHoveredRef.current || !cardRef.current) return;
         const clone = particle.cloneNode(true) as HTMLDivElement;
         cardRef.current!.appendChild(clone);
@@ -159,8 +169,7 @@ const ParticleCard = ({
     const handleMouseEnter = () => {
       isHoveredRef.current = true;
       animateParticles();
-      if (enableTilt)
-        gsap.to(element, { rotateX: 5, rotateY: 5, duration: 0.3, ease: "power2.out" });
+      if (enableTilt) gsap.to(element, { rotateX: 5, rotateY: 5, duration: 0.3, ease: "power2.out" });
     };
 
     const handleMouseLeave = () => {
@@ -205,14 +214,22 @@ const ParticleCard = ({
   );
 };
 
-// 💡 Global Spotlight (safe version)
+// 💡 Global Spotlight (typed)
+interface GlobalSpotlightProps {
+  gridRef: React.RefObject<HTMLDivElement | null>;
+  disableAnimations?: boolean;
+  enabled?: boolean;
+  spotlightRadius?: number;
+  glowColor?: string;
+}
+
 const GlobalSpotlight = ({
   gridRef,
   disableAnimations = false,
   enabled = true,
   spotlightRadius = DEFAULT_SPOTLIGHT_RADIUS,
   glowColor = DEFAULT_GLOW_COLOR,
-}: any) => {
+}: GlobalSpotlightProps) => {
   const spotlightRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -240,14 +257,13 @@ const GlobalSpotlight = ({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!gridRef?.current) return;
-      const cards = gridRef.current.querySelectorAll(".card");
+      const cards = gridRef.current.querySelectorAll<HTMLElement>(".card");
       if (!cards.length) return;
 
       const { proximity, fadeDistance } = calculateSpotlightValues(spotlightRadius);
       let minDistance = Infinity;
 
-      cards.forEach((card: HTMLElement) => {
-        if (!(card instanceof HTMLElement)) return;
+      cards.forEach((card) => {
         const rect = card.getBoundingClientRect();
         const centerX = rect.left + rect.width / 2;
         const centerY = rect.top + rect.height / 2;
@@ -281,7 +297,7 @@ const GlobalSpotlight = ({
 };
 
 // 📱 Mobile detection
-const useMobileDetection = () => {
+const useMobileDetection = (): boolean => {
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
@@ -293,9 +309,20 @@ const useMobileDetection = () => {
 };
 
 // 🎨 Main Bento Component
+interface MagicBentoProps {
+  textAutoHide?: boolean;
+  enableSpotlight?: boolean;
+  enableBorderGlow?: boolean;
+  disableAnimations?: boolean;
+  spotlightRadius?: number;
+  particleCount?: number;
+  enableTilt?: boolean;
+  glowColor?: string;
+  enableMagnetism?: boolean;
+}
+
 const MagicBento = ({
   textAutoHide = true,
-  enableStars = true,
   enableSpotlight = true,
   enableBorderGlow = true,
   disableAnimations = false,
@@ -303,9 +330,8 @@ const MagicBento = ({
   particleCount = DEFAULT_PARTICLE_COUNT,
   enableTilt = true,
   glowColor = DEFAULT_GLOW_COLOR,
-  clickEffect = true,
   enableMagnetism = true,
-}: any) => {
+}: MagicBentoProps) => {
   const gridRef = useRef<HTMLDivElement | null>(null);
   const isMobile = useMobileDetection();
   const shouldDisableAnimations = disableAnimations || isMobile;
@@ -377,12 +403,11 @@ const MagicBento = ({
                 "--glow-y": "50%",
                 "--glow-intensity": "0",
                 "--glow-radius": "200px",
-              }}
+              } as CSSProperties}
               disableAnimations={shouldDisableAnimations}
               particleCount={particleCount}
               glowColor={glowColor}
               enableTilt={enableTilt}
-              clickEffect={clickEffect}
               enableMagnetism={enableMagnetism}
             >
               <div className="card__header mb-2">

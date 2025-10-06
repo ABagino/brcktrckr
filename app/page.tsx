@@ -18,7 +18,7 @@ export default function HomePage() {
         </h1>
         <p className="text-lg md:text-xl text-gray-700 dark:text-gray-300 max-w-2xl mx-auto">
           Helping BrickLinkers evaluate part values, track price movements, 
-          and discover top-performing sets — all in one free analytics tool.
+          and discover top-performing sets - all in one free analytics tool.
         </p>
       </header>
 
@@ -26,12 +26,12 @@ export default function HomePage() {
       <main className="flex-1 flex justify-center items-start px-6">
         <MagicBento
           textAutoHide={true}
-          enableStars={true}
+          // enableStars={true}
           enableSpotlight={true}
           enableBorderGlow={true}
           enableTilt={true}
           enableMagnetism={true}
-          clickEffect={true}
+          // clickEffect={true}
           spotlightRadius={300}
           particleCount={12}
           glowColor="255, 205, 0" // LEGO yellow glow

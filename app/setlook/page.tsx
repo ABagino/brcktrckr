@@ -244,12 +244,12 @@ return (
             <p>Some potential reasons for this:</p>
             <ul className="list-disc list-inside space-y-1 text-sm">
               <li>
-                The set's inventory is toooo new, and BrickLink has not confirmed an
+                The set&apos;s inventory is toooo new, and BrickLink has not confirmed an
                 inventory for it yet -- just have to wait!
               </li>
               <li>
                 The set is prior to 2025; the current version of BrckTrck only has
-                memory for 2025 sets -- but we're working on expanding this!
+                memory for 2025 sets -- but we&apos;re working on expanding this!
               </li>
               <li>
                 Something went wrong! This interaction has been logged, so if this set
@@ -260,7 +260,7 @@ return (
 
           <div className="pt-2">
             <p className="text-blue-600 dark:text-blue-400 font-medium">
-              If you think there’s an error here, please feel free to give us a heads up via our{" "}
+              If you think there&apos;s an error here, please feel free to give us a heads up via our{" "}
               <a
                 href="/contact"
                 className="inline-block ml-1 px-3 py-1 text-sm font-semibold border border-blue-500 text-blue-600 dark:text-blue-400 dark:border-blue-400 rounded-md hover:bg-blue-500 hover:text-white dark:hover:bg-blue-400 dark:hover:text-black transition-colors duration-200"
