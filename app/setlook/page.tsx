@@ -104,18 +104,38 @@ export default function SetPage() {
         const { data: setData, error: setError } = await supabase.rpc("get_set", {
           search_number: searchValue,
         })
-        if (setError) throw setError
-        if (!setData || setData.length === 0) return setSetNotFound(true)
+        console.log("get_set response:", { setData, setError })
+        
+        if (setError) {
+          // console.error("Supabase get_set error:", setError)
+          console.error("Error details:", JSON.stringify(setError, null, 2))
+          throw setError
+        }
 
+        if (!setData || setData.length === 0) {
+          console.log("No set data found for:", searchValue)
+          setSetNotFound(true)
+          return
+        }
         const foundSet = setData[0] as SetRecord
+        console.log("Found set:", foundSet)
         setMatchedSet(foundSet)
 
         const { data: inventory, error: invError } = await supabase.rpc(
           "get_inventory",
           { set_number: foundSet.SetNumber }
         )
-        if (invError) throw invError
-        if (!inventory || inventory.length === 0) return setInventoryMissing(true)
+        console.log("get_inventory response:", { inventory, invError })
+        
+        if (invError) {
+          console.error("Supabase get_inventory error:", invError)
+          console.error("Error details:", JSON.stringify(invError, null, 2))
+          throw invError
+        }
+        if (!inventory || inventory.length === 0) {
+          setInventoryMissing(true)
+          return
+        }
 
         const enriched: InventoryRecord[] = (inventory as InventoryRecord[]).map(
           (item) => {
@@ -144,8 +164,16 @@ export default function SetPage() {
         setTotalValueSum(
           enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue ?? "0"), 0)
         )
-      } catch (err) {
-        console.error(err)
+      } catch (err: unknown) {
+        const e = err as any
+        console.error("Error caught:", err)
+        console.error("Error type:", typeof err)
+        console.error("Error keys:", Object.keys(e))
+        console.error("Error stringified:", JSON.stringify(err, null, 2))
+        if (err instanceof Error) {
+          console.error("Error message:", err.message)
+          console.error("Error stack:", err.stack)
+        }
         setSetNotFound(true)
       }
     }
@@ -248,8 +276,8 @@ return (
                 inventory for it yet -- just have to wait!
               </li>
               <li>
-                The set is prior to 2025; the current version of BrckTrck only has
-                memory for 2025 sets -- but we&apos;re working on expanding this!
+                The set is prior to 2024; the current version of BrckTrcker only has
+                memory for 2024 sets -- but we&apos;re working on expanding this!
               </li>
               <li>
                 Something went wrong! This interaction has been logged, so if this set
