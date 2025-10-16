@@ -191,7 +191,18 @@ export default function SetPage() {
           if (cancelled) return
           if (priceError) throw priceError
 
-          const priceMap: Record<string, any> = {}
+          interface PriceData {
+            item: string
+            sold_avg_price?: number | string | null
+            sold_total_quantity?: number | string | null
+            sold_unit_quantity?: number | string | null
+            stock_avg_price?: number | string | null
+            stock_total_quantity?: number | string | null
+            stock_unit_quantity?: number | string | null
+          }
+
+          const priceMap: Record<string, PriceData> = {}
+
           for (const rec of latestData ?? []) {
             priceMap[rec.item] = rec
           }
@@ -282,118 +293,198 @@ export default function SetPage() {
 
   const activeHeaders = viewMode === "basic" ? basicHeaders : headers
 
-return (
-  <div className="font-sans p-5 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-    {/* 🔍 Search Bar */}
-    <div className="mb-5 flex items-center justify-between gap-4">
-      <div>
-        <input
-          type="text"
-          placeholder="Enter Set Number"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="p-2.5 border border-gray-300 dark:border-gray-600 rounded mr-2 w-52 bg-white dark:bg-gray-800"
-        />
-        <button
-          onClick={handleGoClick}
-          className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Go
-        </button>
-      </div>
-
-      {/* View Mode + Menu */}
-      <div className="flex items-center gap-3">
-        <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden">
-          <button
-            onClick={() => setViewMode("basic")}
-            className={`px-4 py-2 text-sm font-medium ${
-              viewMode === "basic"
-                ? "bg-blue-600 text-white"
-                : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
-            }`}
-          >
-            Basic
-          </button>
-          <button
-            onClick={() => setViewMode("advanced")}
-            className={`px-4 py-2 text-sm font-medium border-l ${
-              viewMode === "advanced"
-                ? "bg-blue-600 text-white"
-                : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
-            }`}
-          >
-            Advanced
-          </button>
-        </div>
-        <NavMenu />
-      </div>
-    </div>
-
-    {/* ❌ Set Not Found */}
-    {setNotFound && (
-      <div className="text-red-600 dark:text-red-400 mb-6 space-y-3">
-        <p className="font-semibold">
-          Set &apos;{searchValue}&apos; not found!
-        </p>
-        <ul className="list-disc list-inside space-y-1 text-sm">
-          <li>The set&apos;s inventory may not exist on BrickLink yet.</li>
-          <li>Older sets (pre-2024) might not be loaded in BrickTrcker yet.</li>
-          <li>Something went wrong while fetching data.</li>
-        </ul>
-      </div>
-    )}
-
-    {/* 🧾 Set Info Bar */}
-    {matchedSet && !setNotFound && (
-      <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
+  return (
+    <div className="font-sans p-5 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      {/* 🔍 Search Bar */}
+      <div className="mb-5 flex items-center justify-between gap-4">
         <div>
-          <p className="my-1">
-            <strong>Set Number:</strong> {matchedSet.SetNumber}
-          </p>
-          <p className="my-1">
-            <strong>Set Name:</strong> {matchedSet.SetName}
-          </p>
-          <p className="my-1">
-            <strong>Theme:</strong> {matchedSet.ThemeName}
-          </p>
+          <input
+            type="text"
+            placeholder="Enter Set Number"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="p-2.5 border border-gray-300 dark:border-gray-600 rounded mr-2 w-52 bg-white dark:bg-gray-800"
+          />
+          <button
+            onClick={handleGoClick}
+            className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+          >
+            Go
+          </button>
         </div>
 
-        <div className="text-right space-y-1">
-          <div className="text-2xl font-bold">
-            Total Value: ${totalValueSum.toFixed(2)}
+        {/* View Mode + Menu */}
+        <div className="flex items-center gap-3">
+          <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden">
+            <button
+              onClick={() => setViewMode("basic")}
+              className={`px-4 py-2 text-sm font-medium ${viewMode === "basic"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+            >
+              Basic
+            </button>
+            <button
+              onClick={() => setViewMode("advanced")}
+              className={`px-4 py-2 text-sm font-medium border-l ${viewMode === "advanced"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700"
+                }`}
+            >
+              Advanced
+            </button>
           </div>
-          <div className="flex items-center justify-end gap-2 text-sm">
-            <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
-              Parts: {partCount} (${partValueSum.toFixed(2)})
-            </div>
-            <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
-              Minifigs: {minifigCount} (${minifigValueSum.toFixed(2)})
-            </div>
-          </div>
+          <NavMenu />
         </div>
       </div>
-    )}
 
-    {/* 👇 Inventory Tables */}
-    {minifigCount > 0 && (
-      <>
-        <h2 className="inline-block text-2xl px-3 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-semibold mb-4">
-          Minifigures
-        </h2>
-        <div className="w-full overflow-x-auto mb-6">
-          <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
-            <thead>
-              <tr>
-                {activeHeaders
-                  .filter(({ key }) => key !== "ColourName")
-                  .map(({ key, label }) => (
+      {/* ❌ Set Not Found */}
+      {setNotFound && (
+        <div className="text-red-600 dark:text-red-400 mb-6 space-y-3">
+          <p className="font-semibold">
+            Set &apos;{searchValue}&apos; not found!
+          </p>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>The set&apos;s inventory may not exist on BrickLink yet.</li>
+            <li>Older sets (pre-2024) might not be loaded in BrickTrcker yet.</li>
+            <li>Something went wrong while fetching data.</li>
+          </ul>
+        </div>
+      )}
+
+      {/* 🧾 Set Info Bar */}
+      {matchedSet && !setNotFound && (
+        <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
+          <div>
+            <p className="my-1">
+              <strong>Set Number:</strong> {matchedSet.SetNumber}
+            </p>
+            <p className="my-1">
+              <strong>Set Name:</strong> {matchedSet.SetName}
+            </p>
+            <p className="my-1">
+              <strong>Theme:</strong> {matchedSet.ThemeName}
+            </p>
+          </div>
+
+          <div className="text-right space-y-1">
+            <div className="text-2xl font-bold">
+              Total Value: ${totalValueSum.toFixed(2)}
+            </div>
+            <div className="flex items-center justify-end gap-2 text-sm">
+              <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
+                Parts: {partCount} (${partValueSum.toFixed(2)})
+              </div>
+              <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
+                Minifigs: {minifigCount} (${minifigValueSum.toFixed(2)})
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 👇 Inventory Tables */}
+      {minifigCount > 0 && (
+        <>
+          <h2 className="inline-block text-2xl px-3 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-semibold mb-4">
+            Minifigures
+          </h2>
+          <div className="w-full overflow-x-auto mb-6">
+            <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
+              <thead>
+                <tr>
+                  {activeHeaders
+                    .filter(({ key }) => key !== "ColourName")
+                    .map(({ key, label }) => (
+                      <th
+                        key={key}
+                        className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer"
+                        onClick={() =>
+                          setSortConfigMinifig((p) => ({
+                            key,
+                            direction:
+                              p.key === key && p.direction === "asc"
+                                ? "desc"
+                                : "asc",
+                          }))
+                        }
+                      >
+                        {label}
+                        {sortConfigMinifig.key === key
+                          ? sortConfigMinifig.direction === "asc"
+                            ? " ↑"
+                            : " ↓"
+                          : ""}
+                      </th>
+                    ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sortedMinifigs.map((item, i) => (
+                  <tr
+                    key={`minifig-${item.ItemNumber}-${item.ColourID}`}
+                    className={
+                      i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""
+                    }
+                  >
+                    {activeHeaders
+                      .filter(({ key }) => key !== "ColourName")
+                      .map(({ key }) => (
+                        <td
+                          key={key}
+                          className="p-3 border-b border-gray-200 dark:border-gray-700"
+                        >
+                          {key === "ItemNumber" ? (
+                            <div className="flex items-center justify-between w-full gap-2">
+                              <div className="flex items-center justify-center max-h-[45px] max-w-[70px]">
+                                <Image
+                                  src={`https://img.bricklink.com/ItemImage/MN/0/${item.ItemNumber}.png`}
+                                  alt={item.ItemNumber}
+                                  height={60}
+                                  width={0}
+                                  className="h-[60px] w-auto object-contain"
+                                  unoptimized
+                                  onError={(e) =>
+                                  ((e.target as HTMLImageElement).style.display =
+                                    "none")
+                                  }
+                                />
+                              </div>
+                              <span className="ml-auto text-right">
+                                {item.ItemNumber}
+                              </span>
+                            </div>
+                          ) : (
+                            item[key] ?? ""
+                          )}
+                        </td>
+                      ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {partCount > 0 && (
+        <>
+          <h2 className="inline-block text-2xl px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-semibold mb-4">
+            Parts
+          </h2>
+
+          <div className="w-full overflow-x-auto">
+            <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
+              <thead>
+                <tr>
+                  {activeHeaders.map(({ key, label }) => (
                     <th
                       key={key}
                       className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer"
                       onClick={() =>
-                        setSortConfigMinifig((p) => ({
+                        setSortConfigParts((p) => ({
                           key,
                           direction:
                             p.key === key && p.direction === "asc"
@@ -403,43 +494,42 @@ return (
                       }
                     >
                       {label}
-                      {sortConfigMinifig.key === key
-                        ? sortConfigMinifig.direction === "asc"
+                      {sortConfigParts.key === key
+                        ? sortConfigParts.direction === "asc"
                           ? " ↑"
                           : " ↓"
                         : ""}
                     </th>
                   ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedMinifigs.map((item, i) => (
-                <tr
-                  key={`minifig-${item.ItemNumber}-${item.ColourID}`}
-                  className={
-                    i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""
-                  }
-                >
-                  {activeHeaders
-                    .filter(({ key }) => key !== "ColourName")
-                    .map(({ key }) => (
+                </tr>
+              </thead>
+
+              <tbody>
+                {sortedParts.map((item, i) => (
+                  <tr
+                    key={`part-${item.ItemNumber}-${item.ColourID}`}
+                    className={
+                      i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""
+                    }
+                  >
+                    {activeHeaders.map(({ key }) => (
                       <td
                         key={key}
                         className="p-3 border-b border-gray-200 dark:border-gray-700"
                       >
                         {key === "ItemNumber" ? (
                           <div className="flex items-center justify-between w-full gap-2">
-                            <div className="flex items-center justify-center max-h-[45px] max-w-[70px]">
+                            <div className="flex items-center justify-center max-h-[35px] max-w-[70px]">
                               <Image
-                                src={`https://img.bricklink.com/ItemImage/MN/0/${item.ItemNumber}.png`}
+                                src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
                                 alt={item.ItemNumber}
-                                height={60}
+                                height={50}
                                 width={0}
-                                className="h-[60px] w-auto object-contain"
+                                className="h-[50px] w-auto object-contain"
                                 unoptimized
                                 onError={(e) =>
-                                  ((e.target as HTMLImageElement).style.display =
-                                    "none")
+                                ((e.target as HTMLImageElement).style.display =
+                                  "none")
                                 }
                               />
                             </div>
@@ -452,93 +542,13 @@ return (
                         )}
                       </td>
                     ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </>
-    )}
-
-    {partCount > 0 && (
-      <>
-        <h2 className="inline-block text-2xl px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-semibold mb-4">
-          Parts
-        </h2>
-
-        <div className="w-full overflow-x-auto">
-          <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
-            <thead>
-              <tr>
-                {activeHeaders.map(({ key, label }) => (
-                  <th
-                    key={key}
-                    className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer"
-                    onClick={() =>
-                      setSortConfigParts((p) => ({
-                        key,
-                        direction:
-                          p.key === key && p.direction === "asc"
-                            ? "desc"
-                            : "asc",
-                      }))
-                    }
-                  >
-                    {label}
-                    {sortConfigParts.key === key
-                      ? sortConfigParts.direction === "asc"
-                        ? " ↑"
-                        : " ↓"
-                      : ""}
-                  </th>
+                  </tr>
                 ))}
-              </tr>
-            </thead>
-
-            <tbody>
-              {sortedParts.map((item, i) => (
-                <tr
-                  key={`part-${item.ItemNumber}-${item.ColourID}`}
-                  className={
-                    i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""
-                  }
-                >
-                  {activeHeaders.map(({ key }) => (
-                    <td
-                      key={key}
-                      className="p-3 border-b border-gray-200 dark:border-gray-700"
-                    >
-                      {key === "ItemNumber" ? (
-                        <div className="flex items-center justify-between w-full gap-2">
-                          <div className="flex items-center justify-center max-h-[35px] max-w-[70px]">
-                            <Image
-                              src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
-                              alt={item.ItemNumber}
-                              height={50}
-                              width={0}
-                              className="h-[50px] w-auto object-contain"
-                              unoptimized
-                              onError={(e) =>
-                                ((e.target as HTMLImageElement).style.display =
-                                  "none")
-                              }
-                            />
-                          </div>
-                          <span className="ml-auto text-right">
-                            {item.ItemNumber}
-                          </span>
-                        </div>
-                      ) : (
-                        item[key] ?? ""
-                      )}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </>
-    )}
-  </div>
-)}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
