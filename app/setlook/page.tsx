@@ -8,7 +8,7 @@ import NavMenu from "@/components/NavMenu"
 interface SetRecord {
   SetNumber: string
   SetName: string
-  Theme: string
+  ThemeName: string
 }
 
 interface InventoryRecord {
@@ -28,6 +28,7 @@ interface InventoryRecord {
   ValueMultiply?: string
   PieceTimeValue?: string
   TotalValue?: string
+  ItemType: string
 }
 
 type SortableKey = keyof InventoryRecord
@@ -67,15 +68,25 @@ export default function SetPage() {
   const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
   const [parsedInventory, setParsedInventory] = useState<InventoryRecord[]>([])
   const [totalValueSum, setTotalValueSum] = useState(0)
+  const [partCount, setPartCount] = useState(0)
+  const [minifigCount, setMinifigCount] = useState(0)
   const [setNotFound, setSetNotFound] = useState(false)
   const [inventoryMissing, setInventoryMissing] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{
-    key: SortableKey | null
-    direction: "asc" | "desc"
-  }>({
-    key: null,
-    direction: "asc",
-  })
+  const [sortConfigMinifig, setSortConfigMinifig] = useState<{
+  key: SortableKey | null
+  direction: "asc" | "desc"
+}>({
+  key: null,
+  direction: "asc",
+})
+
+const [sortConfigParts, setSortConfigParts] = useState<{
+  key: SortableKey | null
+  direction: "asc" | "desc"
+}>({
+  key: null,
+  direction: "asc",
+})
 
   const [viewMode, setViewMode] = useState<"basic" | "advanced">("advanced")
 
@@ -164,48 +175,90 @@ export default function SetPage() {
         setTotalValueSum(
           enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue ?? "0"), 0)
         )
+        // Count total parts and minifigs
+
+        const totalParts = enriched
+          .filter((i) => i.ItemType === "PART")
+          .reduce((sum, i) => sum + (i.Quantity ?? 0), 0)
+
+        const totalMinifigs = enriched
+          .filter((i) => i.ItemType === "MINIFIG")
+          .reduce((sum, i) => sum + (i.Quantity ?? 0), 0)
+
+        setPartCount(totalParts)
+        setMinifigCount(totalMinifigs)
+
       } catch (err: unknown) {
-        const e = err as any
-        console.error("Error caught:", err)
-        console.error("Error type:", typeof err)
-        console.error("Error keys:", Object.keys(e))
-        console.error("Error stringified:", JSON.stringify(err, null, 2))
         if (err instanceof Error) {
-          console.error("Error message:", err.message)
-          console.error("Error stack:", err.stack)
+          console.error("Error caught:", err);
+          console.error("Error type:", typeof err);
+          console.error("Error keys:", Object.keys(err));
+          console.error("Error stringified:", JSON.stringify(err, Object.getOwnPropertyNames(err), 2));
+          console.error("Error message:", err.message);
+          console.error("Error stack:", err.stack);
+        } else {
+          console.error("Unknown error:", err);
         }
-        setSetNotFound(true)
+
+        setSetNotFound(true);
       }
     }
     loadData()
   }, [searchValue])
 
-  const sortedInventory = useMemo(() => {
-    if (!sortConfig.key) return parsedInventory
-    const { key, direction } = sortConfig
-
-    return [...parsedInventory].sort((a, b) => {
+  const sortedMinifigs = useMemo(() => {
+    const filtered = parsedInventory.filter((item) => item.ItemType === "MINIFIG")
+    const { key, direction } = sortConfigMinifig
+    if (!key) return filtered
+    return [...filtered].sort((a, b) => {
       const cmp =
         key === "ItemNumber" || key === "Name" || key === "ColourName"
           ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
-          : (parseFloat(a[key] as string) || 0) -
-            (parseFloat(b[key] as string) || 0)
+          : (parseFloat(a[key] as string) || 0) - (parseFloat(b[key] as string) || 0)
       return direction === "asc" ? cmp : -cmp
     })
-  }, [parsedInventory, sortConfig])
+  }, [parsedInventory, sortConfigMinifig])
 
-  const handleSort = (key: SortableKey) =>
-    setSortConfig((prev) => ({
+  const sortedParts = useMemo(() => {
+    const filtered = parsedInventory.filter((item) => item.ItemType !== "MINIFIG")
+    const { key, direction } = sortConfigParts
+    if (!key) return filtered
+    return [...filtered].sort((a, b) => {
+      const cmp =
+        key === "ItemNumber" || key === "Name" || key === "ColourName"
+          ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
+          : (parseFloat(a[key] as string) || 0) - (parseFloat(b[key] as string) || 0)
+      return direction === "asc" ? cmp : -cmp
+    })
+  }, [parsedInventory, sortConfigParts])
+
+
+  const handleSortMinifig = (key: SortableKey) =>
+    setSortConfigMinifig((prev) => ({
       key,
       direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
     }))
 
-  const renderSortArrow = (key: SortableKey) =>
-    sortConfig.key === key
-      ? sortConfig.direction === "asc"
+  const handleSortParts = (key: SortableKey) =>
+    setSortConfigParts((prev) => ({
+      key,
+      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
+    }))
+
+  const renderSortArrowMinifig = (key: SortableKey) =>
+    sortConfigMinifig.key === key
+      ? sortConfigMinifig.direction === "asc"
         ? " ↑"
         : " ↓"
       : ""
+
+const renderSortArrowParts = (key: SortableKey) =>
+  sortConfigParts.key === key
+    ? sortConfigParts.direction === "asc"
+      ? " ↑"
+      : " ↓"
+    : ""
+
 
   const activeHeaders = viewMode === "basic" ? basicHeaders : headers
 
@@ -303,6 +356,7 @@ return (
 
       {matchedSet && !setNotFound && (
         <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
+          {/* Left column: Set info */}
           <div>
             <p className="my-1">
               <strong>Set Number:</strong> {matchedSet.SetNumber}
@@ -311,14 +365,31 @@ return (
               <strong>Set Name:</strong> {matchedSet.SetName}
             </p>
             <p className="my-1">
-              <strong>Theme:</strong> {matchedSet.Theme}
+              <strong>Theme:</strong> {matchedSet.ThemeName}
             </p>
           </div>
-          <div className="text-2xl font-bold text-right">
-            Total Value: ${totalValueSum.toFixed(2)}
+
+          {/* Right column: Totals */}
+          <div className="text-right space-y-1">
+            <div className="text-2xl font-bold">
+              Total Value: ${totalValueSum.toFixed(2)}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 text-sm text-gray-700 dark:text-gray-300">
+              {/* Parts badge */}
+              <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
+                Parts: {partCount}
+              </div>
+
+              {/* Minifigs badge */}
+              <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
+                Minifigures: {minifigCount}
+              </div>
+            </div>
           </div>
         </div>
       )}
+
 
       {inventoryMissing && matchedSet && (
         <p className="mt-4 text-gray-700 dark:text-gray-300">
@@ -326,49 +397,63 @@ return (
         </p>
       )}
 
-      {parsedInventory.length > 0 && (
-        <div className="w-full overflow-x-auto">
+{/* --- 🧍‍♂️ Minifigures Table (only if > 0) --- */}
+{minifigCount > 0 && (
+  <div>
+    <h2 className="inline-block text-2xl px-3 py-1 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-semibold shadow-sm mb-4">
+      Minifigures
+    </h2>
+    <div className="w-full overflow-x-auto">
+      {/** Prepare filtered headers for minifigs **/}
+      {(() => {
+        const minifigHeaders = activeHeaders.filter(
+          ({ key }) => key !== "ColourName" // completely remove Colour Name
+        )
+
+        return (
           <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
             <thead>
               <tr>
-                {activeHeaders.map(({ key, label }) => (
+                {minifigHeaders.map(({ key, label }) => (
                   <th
                     key={key}
-                    onClick={() => handleSort(key)}
+                    onClick={() => handleSortMinifig(key)}
                     className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer"
                   >
                     {label}
-                    {renderSortArrow(key)}
+                    {renderSortArrowMinifig(key)}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {sortedInventory.map((item, i) => (
+              {sortedMinifigs.map((item, i) => (
                 <tr
-                  key={`${item.ItemNumber}-${item.ColourID}`}
+                  key={`minifig-${item.ItemNumber}-${item.ColourID}`}
                   className={i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""}
                 >
-                  {activeHeaders.map(({ key }) => (
+                  {minifigHeaders.map(({ key }) => (
                     <td
                       key={key}
                       className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle"
                     >
                       {key === "ItemNumber" ? (
-                        <div className="flex items-center gap-2">
-                          <Image
-                            src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
-                            alt={item.ItemNumber}
-                            width={32}
-                            height={32}
-                            className="align-middle"
-                            unoptimized
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement
-                              target.style.display = "none"
-                            }}
-                          />
-                          <span>{item.ItemNumber}</span>
+                        <div className="flex items-center justify-between w-full gap-2">
+                          <div className="flex items-center justify-center max-h-[45px] max-w-[70px]">
+                            <Image
+                              src={`https://img.bricklink.com/ItemImage/MN/0/${item.ItemNumber}.png`}
+                              alt={item.ItemNumber}
+                              height={60}
+                              width={0}
+                              className="h-[60px] w-auto object-contain"
+                              unoptimized
+                              onError={(e) => {
+                                const target = e.target as HTMLImageElement
+                                target.style.display = "none"
+                              }}
+                            />
+                          </div>
+                          <span className="ml-auto text-right">{item.ItemNumber}</span>
                         </div>
                       ) : (
                         item[key] ?? ""
@@ -379,8 +464,79 @@ return (
               ))}
             </tbody>
           </table>
-        </div>
-      )}
+        )
+      })()}
     </div>
-  )
-}
+    {/* 👇 Divider line before the next table */}
+     <hr className="my-4 border-t border-gray-300 dark:border-gray-700" />
+  </div>
+)}
+
+
+
+    {/* --- 🧱 Parts & Others Table --- */}
+    <div>
+      <h2 className="inline-block text-2xl px-3 py-1 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-semibold shadow-sm mb-4">
+        Parts
+      </h2>
+      <div className="w-full overflow-x-auto">
+        <table className="w-full table-auto border-collapse bg-white dark:bg-gray-800 shadow">
+          <thead>
+            <tr>
+              {activeHeaders.map(({ key, label }) => (
+                <th
+                  key={key}
+                  onClick={() => handleSortParts(key)}
+                  className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer"
+                >
+                  {label}
+                  {renderSortArrowParts(key)}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sortedParts.map((item, i) => (
+              <tr
+                key={`part-${item.ItemNumber}-${item.ColourID}`}
+                className={i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""}
+              >
+                {activeHeaders.map(({ key }) => (
+                  <td
+                    key={key}
+                    className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle"
+                  >
+                    {key === "ItemNumber" ? (
+                      <div className="flex items-center justify-between w-full gap-2">
+                        <div className="flex items-center justify-center max-h-[35px] max-w-[70px]">
+                          <Image
+                            src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
+                            alt={item.ItemNumber}
+                            height={50}
+                            width={0}
+                            className="h-[50px] w-auto object-contain"
+                            unoptimized
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement
+                              target.style.display = "none"
+                            }}
+                          />
+                        </div>
+                        <span className="ml-auto text-right">{item.ItemNumber}</span>
+                      </div>
+                    ) : (
+                      item[key] ?? ""
+                    )}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+)}
+//     </div>
+//   )
+// }
