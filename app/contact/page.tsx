@@ -3,44 +3,71 @@
 import { useState } from "react"
 import NavMenu from "@/components/NavMenu"
 import confetti from "canvas-confetti"
+import { supabase } from "@/utils/supabase/client"
 
 export default function ContactPage() {
   const [category, setCategory] = useState("Missing set?")
   const [message, setMessage] = useState("")
   const [email, setEmail] = useState("")
   const [submitted, setSubmitted] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    console.log({ category, message, email })
-    setSubmitted(true)
+    setError(null)
 
-    // 🎉 Launch confetti when form is submitted
-    confetti({
-      particleCount: 120,
-      spread: 120,
-      origin: { y: 0.6 },
-      colors: ["#3b82f6", "#9333ea", "#facc15", "#10b981"], // blue, purple, yellow, green
-    })
+    // 🪤 Check honeypot field
+    const form = e.currentTarget
+    const website = (form.elements.namedItem("website") as HTMLInputElement)?.value
+    if (website) {
+      console.warn("🪤 Bot detected — submission ignored.")
+      return
+    }
+
+    try {
+      const timestamp = new Date().toISOString().split("T").join(" ").slice(0, 19)
+
+      const { error } = await supabase.from("feedback").insert([
+        {
+          category,
+          message,
+          email: email || null,
+          submitted_at: timestamp,
+        },
+      ])
+
+      if (error) throw error
+
+      confetti({
+        particleCount: 120,
+        spread: 120,
+        origin: { y: 0.6 },
+        colors: ["#3b82f6", "#9333ea", "#facc15", "#10b981"],
+      })
+
+      setSubmitted(true)
+    } catch (err: any) {
+      console.error("Error submitting feedback:", err.message)
+      setError("Something went wrong — please try again.")
+    }
   }
+
 
   if (submitted) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-100 via-gray-100 to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4">
-        {/* Header with menu */}
         <div className="flex justify-end py-4">
           <NavMenu />
         </div>
 
-        {/* Thank you card */}
         <div className="flex-grow flex items-center justify-center">
-          <div className="max-w-md w-full rounded-2xl backdrop-blur-lg bg-white/80 dark:bg-gray-800/70 shadow-2xl p-10 text-center relative overflow-hidden">
+          <div className="max-w-md w-full rounded-2xl backdrop-blur-lg bg-white/80 dark:bg-gray-800/70 shadow-2xl p-10 text-center">
             <div className="text-5xl mb-4">✅</div>
             <h1 className="text-3xl font-bold mb-3 text-gray-900 dark:text-gray-100">
               Thank you!
             </h1>
             <p className="text-gray-700 dark:text-gray-300 text-lg">
-              Your feedback has been received. We’ll look into it shortly 🥳.
+              Your feedback has been received. We'll look into it shortly 🥳.
             </p>
           </div>
         </div>
@@ -50,12 +77,10 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-100 via-gray-100 to-purple-100 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 px-4">
-      {/* Header with menu */}
       <div className="flex justify-end py-4">
         <NavMenu />
       </div>
 
-      {/* Glass card */}
       <div className="flex-grow flex items-center justify-center">
         <div className="max-w-5xl w-full rounded-2xl backdrop-blur-lg bg-white/80 dark:bg-gray-800/70 shadow-2xl p-10">
           <h1 className="text-3xl font-extrabold mb-8 text-center text-gray-900 dark:text-gray-100">
@@ -115,6 +140,21 @@ export default function ContactPage() {
                 className="block w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white/90 dark:bg-gray-700/80 text-gray-900 dark:text-gray-100 shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 p-3"
               />
             </div>
+
+            {/* Error message */}
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
+
+            {/* 🪤 Honeypot field (hidden from real users) */}
+            <input
+              type="text"
+              name="website"            // arbitrary field name (bots will fill it)
+              tabIndex={-1}
+              autoComplete="off"
+              className="hidden"        // visually hidden with Tailwind
+            />
+
 
             {/* Submit */}
             <button
