@@ -1,0 +1,51 @@
+export interface SetRecord {
+  SetNumber: string
+  SetName: string
+  ThemeName: string
+}
+
+export interface InventoryRecord {
+  ItemNumber: string
+  Name: string
+  ColourID: number
+  ColourName: string
+  Quantity: number
+  SoldAvgPrice: string | null
+  SoldTotalQuantity: string | null
+  SoldUnitQuantity: string | null
+  StockAvgPrice: string | null
+  StockTotalQuantity: string | null
+  StockUnitQuantity: string | null
+  Staple?: string
+  Hotness?: string
+  ValueMultiply?: string
+  PieceTimeValue?: string
+  TotalValue?: string
+  ItemType: string
+}
+
+export type SortableKey = keyof InventoryRecord
+
+export const enrichInventory = (items: InventoryRecord[]) => {
+  return items.map((item) => {
+    const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
+    const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
+    const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
+    const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
+    const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
+    const quantity = item.Quantity || 0
+    const staple = stockTotal ? soldTotal / stockTotal : 0
+    const hotness = stockUnit ? soldUnit / stockUnit : 0
+    const pieceTimeValue = price * staple * hotness
+    const totalValue = quantity * pieceTimeValue
+
+    return {
+      ...item,
+      Staple: staple.toFixed(4),
+      Hotness: hotness.toFixed(4),
+      ValueMultiply: (staple * hotness).toFixed(4),
+      PieceTimeValue: pieceTimeValue.toFixed(4),
+      TotalValue: totalValue.toFixed(4),
+    }
+  })
+}
