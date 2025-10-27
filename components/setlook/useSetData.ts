@@ -62,7 +62,18 @@ export function useSetData(searchValue: string) {
           )
 
           if (!cancelled && !priceError && latestData?.length) {
-            const priceMap: Record<string, any> = {}
+            // ✅ Define a proper type instead of `any`
+            type PriceRecord = {
+              item: string
+              sold_avg_price?: number | null
+              sold_total_quantity?: number | null
+              sold_unit_quantity?: number | null
+              stock_avg_price?: number | null
+              stock_total_quantity?: number | null
+              stock_unit_quantity?: number | null
+            }
+
+            const priceMap: Record<string, PriceRecord> = {}
             for (const rec of latestData) priceMap[rec.item] = rec
 
             // Merge updated price data into minifigs
@@ -122,8 +133,13 @@ export function useSetData(searchValue: string) {
           parts: enriched.filter((i) => i.ItemType === "PART").length,
           minifigs: enriched.filter((i) => i.ItemType === "MINIFIG").length,
         })
-      } catch (err) {
-        console.error("❌ Error loading set:", err)
+      } catch (err: unknown) {
+        // ✅ Properly typed error handling
+        if (err instanceof Error) {
+          console.error("❌ Error loading set:", err.message)
+        } else {
+          console.error("❌ Unknown error loading set:", err)
+        }
         if (!cancelled) setIsNotFound(true)
       }
     }

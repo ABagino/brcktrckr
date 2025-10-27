@@ -16,12 +16,12 @@ export interface InventoryRecord {
   StockAvgPrice: string | null
   StockTotalQuantity: string | null
   StockUnitQuantity: string | null
-  Staple?: string
-  Hotness?: string
-  ValueMultiply?: string
-  PieceTimeValue?: string
-  TotalValue?: string
-  ItemType: string
+  Staple?: string | null
+  Hotness?: string | null
+  ValueMultiply?: string | null
+  PieceTimeValue?: string | null
+  TotalValue?: string | null
+  ItemType: string 
 }
 
 export type SortableKey = keyof InventoryRecord

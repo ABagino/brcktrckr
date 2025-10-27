@@ -46,11 +46,17 @@ export default function ContactPage() {
       })
 
       setSubmitted(true)
-    } catch (err: any) {
-      console.error("Error submitting feedback:", err.message)
-      setError("Something went wrong — please try again.")
-    }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        console.error("Error submitting feedback:", err.message)
+        setError("Something went wrong — please try again.")
+      } else {
+        console.error("Unexpected error:", err)
+        setError("An unexpected error occurred — please try again.")
+      }
   }
+}
+
 
 
   if (submitted) {
@@ -67,7 +73,7 @@ export default function ContactPage() {
               Thank you!
             </h1>
             <p className="text-gray-700 dark:text-gray-300 text-lg">
-              Your feedback has been received. We'll look into it shortly 🥳.
+              Your feedback has been received. We&apos;ll look into it shortly 🥳.
             </p>
           </div>
         </div>
