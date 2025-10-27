@@ -9,7 +9,6 @@ interface Props {
   title: string
   records: InventoryRecord[]
   activeHeaders: { key: SortableKey; label: string }[]
-  excludeColour?: boolean
   sortConfig: { key: SortableKey | null; direction: "asc" | "desc" }
   setSortConfig: React.Dispatch<
     React.SetStateAction<{ key: SortableKey | null; direction: "asc" | "desc" }>
@@ -21,7 +20,6 @@ export default function InventoryTable({
   title,
   records,
   activeHeaders,
-  excludeColour,
   sortConfig,
   setSortConfig,
   imagePath,
@@ -50,9 +48,15 @@ export default function InventoryTable({
           ...prev,
           [itemNo]: (data as InventoryRecord[]) ?? [],
         }))
-      } catch (err: any) {
-        console.error("❌ Error fetching minifig parts:", err?.message || err)
-      }
+      } catch (err: unknown) {
+          if (err instanceof Error) {
+            console.error("❌ Error fetching minifig parts:", err.message)
+          } else if (typeof err === "string") {
+            console.error("❌ Error fetching minifig parts:", err)
+          } else {
+            console.error("❌ Unknown error fetching minifig parts:", err)
+          }
+        }
     }
   }
 

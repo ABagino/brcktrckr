@@ -142,7 +142,6 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
           title="Minifigures"
           records={sortedMinifigs}
           activeHeaders={activeHeaders}
-          excludeColour
           sortConfig={sortConfigMinifig}
           setSortConfig={setSortConfigMinifig}
           imagePath={(i) =>
