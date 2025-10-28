@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { supabase } from "@/utils/supabase/client"
-import { InventoryRecord, SortableKey } from "./helper"
+import { InventoryRecord, SortableKey, columnWidths } from "./helper"
 
 interface Props {
   title: string
@@ -26,6 +26,7 @@ export default function InventoryTable({
 }: Props) {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [minifigParts, setMinifigParts] = useState<Record<string, InventoryRecord[]>>({})
+  const [minifigTotals, setMinifigTotals] = useState<Record<string, number>>({})
 
   if (!records.length) return null
 
@@ -34,40 +35,93 @@ export default function InventoryTable({
     ? activeHeaders.filter(({ key }) => key !== "ColourName")
     : activeHeaders
 
+  // 🧠 Background load of all minifigure totals
+  useEffect(() => {
+    const fetchMinifigTotals = async () => {
+      const minifigs = records.filter((r) => r.ItemType === "MINIFIG")
+
+      for (const fig of minifigs) {
+        // Skip if already cached
+        if (minifigTotals[fig.ItemNumber]) continue
+
+        try {
+          const { data, error } = await supabase.rpc("get_minifigure_inventory", {
+            minifig_number: fig.ItemNumber,
+          })
+          if (error) throw error
+
+          let parts = (data as InventoryRecord[]) ?? []
+
+          // This never goes through useSetData.ts, only locally
+          parts = parts.map((p) => {
+            const soldTotal = parseFloat(p.SoldTotalQuantity ?? "0") || 0
+            const stockTotal = parseFloat(p.StockTotalQuantity ?? "0") || 0
+            const soldUnit = parseFloat(p.SoldUnitQuantity ?? "0") || 0
+            const stockUnit = parseFloat(p.StockUnitQuantity ?? "0") || 0
+            const price = parseFloat(p.SoldAvgPrice ?? "0") || 0
+            const quantity = p.Quantity || 0
+
+            const staple = stockTotal ? soldTotal / stockTotal : 0
+            const hotness = stockUnit ? soldUnit / stockUnit : 0
+
+            const pieceTimeValueRaw = Math.min(staple * hotness, 10) // same cap logic
+            const pieceTimeValue = price * pieceTimeValueRaw
+            const totalValue = quantity * pieceTimeValue
+
+            return {
+              ...p,
+              Staple: staple.toFixed(3),
+              Hotness: hotness.toFixed(3),
+              ValueMultiply: pieceTimeValueRaw.toFixed(3),
+              PieceTimeValue: pieceTimeValue.toFixed(3),
+              TotalValue: totalValue.toFixed(3),
+            }
+          })
+
+          // ✅ Now this will correctly sum up TotalValue
+          const totalValueSum = parts.reduce(
+            (sum, part) => sum + (parseFloat(part.TotalValue ?? "0") || 0),
+            0
+          )
+
+          // 💾 Store parts and total
+          setMinifigParts((prev) => ({ ...prev, [fig.ItemNumber]: parts }))
+          setMinifigTotals((prev) => ({ ...prev, [fig.ItemNumber]: totalValueSum }))
+        } catch (err) {
+          console.error(`⚠️ Error preloading total for ${fig.ItemNumber}:`, err)
+        }
+      }
+    }
+
+    fetchMinifigTotals()
+  }, [records.length])
 
   const toggleExpanded = async (itemNo: string) => {
     setExpanded((prev) => ({ ...prev, [itemNo]: !prev[itemNo] }))
 
-    if (!minifigParts[itemNo]) {
-      try {
-        const { data, error } = await supabase.rpc("get_minifigure_inventory", {
-          minifig_number: itemNo,
-        })
-        if (error) throw error
-        setMinifigParts((prev) => ({
-          ...prev,
-          [itemNo]: (data as InventoryRecord[]) ?? [],
-        }))
-      } catch (err: unknown) {
-          if (err instanceof Error) {
-            console.error("❌ Error fetching minifig parts:", err.message)
-          } else if (typeof err === "string") {
-            console.error("❌ Error fetching minifig parts:", err)
-          } else {
-            console.error("❌ Unknown error fetching minifig parts:", err)
-          }
-        }
+    if (minifigParts[itemNo]) return // already preloaded
+
+    try {
+      const { data, error } = await supabase.rpc("get_minifigure_inventory", {
+        minifig_number: itemNo,
+      })
+      if (error) throw error
+      setMinifigParts((prev) => ({
+        ...prev,
+        [itemNo]: (data as InventoryRecord[]) ?? [],
+      }))
+    } catch (err) {
+      console.error("❌ Error fetching minifig parts on expand:", err)
     }
   }
 
   return (
     <>
       <h2
-        className={`inline-block text-2xl px-3 py-1 ${
-          title.includes("Mini")
-            ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300"
-            : "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
-        } rounded-md font-semibold mb-4`}
+        className={`inline-block text-2xl px-3 py-1 ${title.includes("Mini")
+          ? "bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300"
+          : "bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300"
+          } rounded-md font-semibold mb-4`}
       >
         {title}
       </h2>
@@ -87,7 +141,10 @@ export default function InventoryTable({
                     }))
                   }
                   className="sticky top-0 bg-gray-800 dark:bg-gray-700 text-white p-3 text-left cursor-pointer font-medium break-words text-wrap"
-                  style={{ width: `${100 / headers.length}%`, whiteSpace: "normal" }}
+                  style={{
+                    width: columnWidths[key] || `${100 / headers.length}%`,
+                    whiteSpace: "normal",
+                  }}
                 >
                   {label}
                   {sortConfig.key === key
@@ -106,64 +163,117 @@ export default function InventoryTable({
 
               return (
                 <React.Fragment key={`${title}-${item.ItemNumber}-${item.ColourID}`}>
-                  <tr
-                    className={
-                      i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""
-                    }
-                  >
-                    {headers.map(({ key }) => (
-                      <td
-                        key={key}
-                        className="p-3 border-b border-gray-200 dark:border-gray-700 align-top text-gray-900 dark:text-gray-100"
-                      >
-                        {key === "ItemNumber" ? (
-                          <div className="flex items-center justify-between w-full gap-2">
-                            <div className="flex items-center justify-center max-h-[50px] max-w-[70px]">
-                              <Image
-                                src={imagePath(item)}
-                                alt={item.ItemNumber}
-                                height={50}
-                                width={0}
-                                className="h-[50px] w-auto object-contain"
-                                unoptimized
-                                onError={(e) =>
-                                  ((e.target as HTMLImageElement).style.display = "none")
-                                }
-                              />
-                            </div>
-                            <span className="ml-auto text-right font-sans">
-                              {item.ItemNumber}
-                            </span>
-                          </div>
-                        ) : key === "Name" ? (
-                          <div className="flex flex-col">
-                            <span className="font-sans">{item.Name}</span>
-                            {title.includes("Mini") && (
-                              <button
-                                onClick={() => toggleExpanded(item.ItemNumber)}
-                                className={`mt-2 w-full py-1.5 text-sm font-semibold rounded-md border transition-all duration-200
-                                  ${
-                                    isExpanded
-                                      ? "bg-white text-blue-700 border-blue-700 hover:bg-blue-50 dark:bg-white dark:text-blue-700 dark:border-blue-700 dark:hover:bg-blue-200"
-                                      : "bg-blue-600 text-white border-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+                  <tr className={i % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""}>
+                    {headers.map(({ key }) => {
+                      switch (key) {
+                        case "ItemNumber":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle">
+                              <div
+                                className={`flex items-center justify-between w-full gap-2 ${item.ItemNumber.length > 7 ? "flex-col text-center" : "flex-row"
                                   }`}
                               >
-                                {isExpanded ? "Hide Parts" : "Expand Parts"}
-                              </button>
-                            )}
-                          </div>
-                        ) : (
-                          item[key] ?? ""
-                        )}
-                      </td>
-                    ))}
-                  </tr>
+                                <div className="flex items-center justify-center max-h-[50px] max-w-[70px] mx-auto">
+                                  <Image
+                                    src={imagePath(item)}
+                                    alt={item.ItemNumber}
+                                    height={50}
+                                    width={0}
+                                    className="h-[50px] w-auto object-contain"
+                                    unoptimized
+                                    onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                                  />
+                                </div>
+                                <span
+                                  className={`font-sans ${item.ItemNumber.length > 7 ? "text-center mt-1" : "ml-auto text-right"
+                                    }`}
+                                >
+                                  {item.ItemNumber}
+                                </span>
+                              </div>
+                            </td>
+                          )
 
+                        case "Name":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle">
+                              <div className="flex flex-col">
+                                <span className="font-sans">{item.Name}</span>
+                                {title.includes("Mini") && (
+                                  <button
+                                    onClick={() => toggleExpanded(item.ItemNumber)}
+                                    className={`mt-2 self-start inline-flex items-center justify-center px-8 py-1.5 text-sm font-semibold rounded-md border transition-all duration-200
+                  ${expanded[item.ItemNumber]
+                                        ? "bg-white text-blue-700 border-blue-700 hover:bg-blue-50 dark:bg-white dark:text-blue-700 dark:border-blue-700 dark:hover:bg-blue-200"
+                                        : "bg-blue-200 text-black border-blue-600 hover:bg-blue-400 dark:bg-blue-400 dark:hover:bg-blue-200"
+                                      }`}
+                                  >
+                                    {minifigTotals[item.ItemNumber] !== undefined ? (
+                                      `${expanded[item.ItemNumber] ? "Hide Parts" : "Expand Parts"}: $${minifigTotals[
+                                        item.ItemNumber
+                                      ].toFixed(2)}`
+                                    ) : (
+                                      <span className="inline-flex items-center">
+                                        {expanded[item.ItemNumber] ? "Hide Parts:" : "Expand Parts:"}
+                                        <svg
+                                          className="animate-spin ml-2 h-4 w-4 text-blue-700"
+                                          xmlns="http://www.w3.org/2000/svg"
+                                          fill="none"
+                                          viewBox="0 0 24 24"
+                                        >
+                                          <circle
+                                            className="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            strokeWidth="4"
+                                          ></circle>
+                                          <path
+                                            className="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                                          ></path>
+                                        </svg>
+                                      </span>
+                                    )}
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          )
+
+                        case "Staple":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle">
+                              {item.Staple ?? "—"}
+                            </td>
+                          )
+
+                        case "Hotness":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle">
+                              {item.Hotness ?? "—"}
+                            </td>
+                          )
+                        default:
+                          return (
+                            <td
+                              key={key}
+                              className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap"
+                              style={{ whiteSpace: "normal" }}
+                            >
+                              {item[key] ?? "—"}
+                            </td>
+                          )
+                      }
+                    })}
+                  </tr>
                   {/* 🧱 Expanded Minifig Parts */}
                   {isExpanded && minifigParts[item.ItemNumber] && (
                     <tr className="bg-gray-50 dark:bg-gray-900/30">
                       <td colSpan={headers.length} className="p-0">
-                        <div className="border border-gray-100 dark:border-gray-800 rounded-md overflow-hidden mt-2 mb-2">
+                        <div className="border-2 border-blue-300 dark:border-blue-600 rounded-md overflow-hidden mt-2 mb-2 shadow-sm transition-all duration-200">
                           <div className="overflow-x-auto">
                             <table className="w-full table-fixed border-collapse bg-white dark:bg-gray-800 text-base">
                               <thead>
@@ -172,7 +282,12 @@ export default function InventoryTable({
                                     <th
                                       key={key}
                                       className="p-3 text-left bg-blue-100 dark:bg-blue-900/40 font-medium break-words text-wrap"
-                                      style={{ width: `${100 / activeHeaders.length}%`, whiteSpace: "normal" }}
+                                      style={{
+                                        width:
+                                          columnWidths[key] ||
+                                          `${100 / activeHeaders.length}%`,
+                                        whiteSpace: "normal",
+                                      }}
                                     >
                                       {label}
                                     </th>
@@ -181,91 +296,89 @@ export default function InventoryTable({
                               </thead>
 
                               <tbody>
-                                {minifigParts[item.ItemNumber].map((part, j) => {
-                                  const soldTotal = parseFloat(part.SoldTotalQuantity ?? "0") || 0
-                                  const stockTotal = parseFloat(part.StockTotalQuantity ?? "0") || 0
-                                  const soldUnit = parseFloat(part.SoldUnitQuantity ?? "0") || 0
-                                  const stockUnit = parseFloat(part.StockUnitQuantity ?? "0") || 0
-                                  const price = parseFloat(part.SoldAvgPrice ?? "0") || 0
-                                  const quantity = part.Quantity || 0
-                                  const staple = stockTotal ? soldTotal / stockTotal : 0
-                                  const hotness = stockUnit ? soldUnit / stockUnit : 0
-                                  const valueMultiply = staple * hotness
-                                  const pieceTimeValue = price * valueMultiply
-                                  const totalValue = quantity * pieceTimeValue
-
-                                  return (
-                                    <tr
-                                      key={`${item.ItemNumber}-part-${j}`}
-                                      className={
-                                        j % 2 === 0
-                                          ? "bg-gray-50 dark:bg-gray-900/40"
-                                          : ""
-                                      }
-                                    >
-                                      {activeHeaders.map(({ key }) => {
-                                        switch (key) {
-                                          case "ItemNumber":
-                                            return (
-                                              <td key={key} className="p-3">
-                                                <div className="flex items-center justify-between w-full gap-2">
-                                                  <div className="flex items-center justify-center max-h-[45px] max-w-[70px]">
-                                                    <Image
-                                                      src={`https://img.bricklink.com/ItemImage/PN/${part.ColourID}/${part.ItemNumber}.png`}
-                                                      alt={part.ItemNumber}
-                                                      height={45}
-                                                      width={0}
-                                                      className="h-[45px] w-auto object-contain"
-                                                      unoptimized
-                                                      onError={(e) =>
-                                                        ((e.target as HTMLImageElement).style.display =
-                                                          "none")
-                                                      }
-                                                    />
-                                                  </div>
-                                                  <span className="ml-auto text-right font-sans">
-                                                    {part.ItemNumber}
-                                                  </span>
-                                                </div>
-                                              </td>
-                                            )
-                                          case "Staple":
-                                            return <td key={key} className="p-3">{staple.toFixed(4)}</td>
-                                          case "Hotness":
-                                            return <td key={key} className="p-3">{hotness.toFixed(4)}</td>
-                                          case "ValueMultiply":
-                                            return <td key={key} className="p-3">{valueMultiply.toFixed(4)}</td>
-                                          case "PieceTimeValue":
-                                            return (
-                                              <td key={key} className="p-3">
-                                                {pieceTimeValue
-                                                  ? `$${pieceTimeValue.toFixed(4)}`
-                                                  : "—"}
-                                              </td>
-                                            )
-                                          case "TotalValue":
-                                            return (
-                                              <td key={key} className="p-3">
-                                                {totalValue
-                                                  ? `$${totalValue.toFixed(2)}`
-                                                  : "—"}
-                                              </td>
-                                            )
-                                          default:
-                                            return (
-                                              <td
-                                                key={key}
-                                                className="p-3 align-top text-gray-900 dark:text-gray-100 break-words text-wrap"
-                                                style={{ whiteSpace: "normal" }}
+                                {minifigParts[item.ItemNumber].map((part, j) => (
+                                  <tr
+                                    key={`${item.ItemNumber}-part-${j}`}
+                                    className={j % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""}
+                                  >
+                                    {activeHeaders.map(({ key }) => {
+                                      switch (key) {
+                                        case "ItemNumber":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              <div
+                                                className={`flex items-center justify-between w-full gap-2 ${part.ItemNumber.length > 7 ? "flex-col text-center" : "flex-row"
+                                                  }`}
                                               >
-                                                {part[key] ?? "—"}
-                                              </td>
-                                            )
-                                        }
-                                      })}
-                                    </tr>
-                                  )
-                                })}
+                                                <div className="flex items-center justify-center max-h-[45px] max-w-[70px] mx-auto">
+                                                  <Image
+                                                    src={`https://img.bricklink.com/ItemImage/PN/${part.ColourID}/${part.ItemNumber}.png`}
+                                                    alt={part.ItemNumber}
+                                                    height={45}
+                                                    width={0}
+                                                    className="h-[45px] w-auto object-contain"
+                                                    unoptimized
+                                                    onError={(e) =>
+                                                      ((e.target as HTMLImageElement).style.display = "none")
+                                                    }
+                                                  />
+                                                </div>
+                                                <span
+                                                  className={`font-sans ${part.ItemNumber.length > 7
+                                                    ? "text-center mt-1"
+                                                    : "ml-auto text-right"
+                                                    }`}
+                                                >
+                                                  {part.ItemNumber}
+                                                </span>
+                                              </div>
+                                            </td>
+                                          )
+                                        case "Staple":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              {part.Staple ?? "—"}
+                                            </td>
+                                          )
+                                        case "Hotness":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              {part.Hotness ?? "—"}
+                                            </td>
+                                          )
+                                        case "ValueMultiply":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              {part.ValueMultiply ?? "—"}
+                                            </td>
+                                          )
+                                        case "PieceTimeValue":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              {part.PieceTimeValue ? `$${part.PieceTimeValue}` : "—"}
+                                            </td>
+                                          )
+                                        case "TotalValue":
+                                          return (
+                                            <td key={key} className="p-3">
+                                              {part.TotalValue ? `$${part.TotalValue}` : "—"}
+                                            </td>
+                                          )
+
+                                        default:
+                                          return (
+                                            <td
+                                              key={key}
+                                              className="p-3 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap"
+                                              style={{ whiteSpace: "normal" }}
+                                            >
+                                              {part[key] ?? "—"}
+                                            </td>
+                                          )
+                                      }
+                                    })}
+                                  </tr>
+                                ))}
                               </tbody>
                             </table>
                           </div>

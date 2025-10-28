@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "@/utils/supabase/client"
-import { SetRecord, InventoryRecord, enrichInventory } from "./helper"
+import { SetRecord, InventoryRecord } from "./helper"
 
 export function useSetData(searchValue: string) {
   const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
@@ -48,8 +48,9 @@ export function useSetData(searchValue: string) {
         }
 
         // 3️⃣ Enrich base inventory
-        let enriched: InventoryRecord[] = enrichInventory(invData as InventoryRecord[])
+        let enriched: InventoryRecord[] = invData as InventoryRecord[]
 
+        // 4️⃣ Fetch latest minifigure prices
         // 4️⃣ Fetch latest minifigure prices
         const minifigItems = enriched
           .filter((i) => i.ItemType === "MINIFIG")
@@ -62,7 +63,6 @@ export function useSetData(searchValue: string) {
           )
 
           if (!cancelled && !priceError && latestData?.length) {
-            // ✅ Define a proper type instead of `any`
             type PriceRecord = {
               item: string
               sold_avg_price?: number | null
@@ -91,32 +91,39 @@ export function useSetData(searchValue: string) {
                 StockUnitQuantity: price.stock_unit_quantity?.toString() ?? item.StockUnitQuantity,
               }
             })
-
-            // Recalculate derived values
-            enriched = enriched.map((item) => {
-              const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
-              const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
-              const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
-              const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
-              const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
-              const quantity = item.Quantity || 0
-              const staple = stockTotal ? soldTotal / stockTotal : 0
-              const hotness = stockUnit ? soldUnit / stockUnit : 0
-              const cap = item.ItemType === "MINIFIG" ? 9 : 20
-              const pieceTimeValueRaw = Math.min(staple * hotness, cap)
-              const pieceTimeValue = price * pieceTimeValueRaw
-              const totalValue = quantity * pieceTimeValue
-              return {
-                ...item,
-                Staple: staple.toFixed(4),
-                Hotness: hotness.toFixed(4),
-                ValueMultiply: pieceTimeValueRaw.toFixed(4),
-                PieceTimeValue: pieceTimeValue.toFixed(4),
-                TotalValue: totalValue.toFixed(4),
-              }
-            })
           }
         }
+
+        // ✅ Always run this next section for both parts and minifigs
+        enriched = enriched.map((item) => {
+          const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
+          const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
+          const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
+          const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
+          const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
+          const quantity = item.Quantity || 0
+
+          const staple = stockTotal ? soldTotal / stockTotal : 0
+          const hotness = stockUnit ? soldUnit / stockUnit : 0
+
+          // 🔹 Apply both type-specific and global caps (10 max)
+          const typeCap = item.ItemType === "MINIFIG" ? 9 : 20
+          const pieceTimeValueRaw = Math.min(staple * hotness, typeCap, 10)
+          const pieceTimeValue = price * pieceTimeValueRaw
+          const totalValue = quantity * pieceTimeValue
+
+          return {
+            ...item,
+            Staple: staple.toFixed(3),
+            Hotness: hotness.toFixed(3),
+            ValueMultiply: pieceTimeValueRaw.toFixed(3),
+            PieceTimeValue: pieceTimeValue.toFixed(3),
+            TotalValue: totalValue.toFixed(3),
+          }
+        })
+
+
+
 
         // 5️⃣ Compute totals + counts
         const total = enriched.reduce((s, i) => s + parseFloat(i.TotalValue ?? "0"), 0)

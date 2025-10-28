@@ -21,31 +21,48 @@ export interface InventoryRecord {
   ValueMultiply?: string | null
   PieceTimeValue?: string | null
   TotalValue?: string | null
-  ItemType: string 
+  ItemType: string
 }
 
 export type SortableKey = keyof InventoryRecord
 
-export const enrichInventory = (items: InventoryRecord[]) => {
-  return items.map((item) => {
-    const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
-    const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
-    const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
-    const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
-    const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
-    const quantity = item.Quantity || 0
-    const staple = stockTotal ? soldTotal / stockTotal : 0
-    const hotness = stockUnit ? soldUnit / stockUnit : 0
-    const pieceTimeValue = price * staple * hotness
-    const totalValue = quantity * pieceTimeValue
-
-    return {
-      ...item,
-      Staple: staple.toFixed(4),
-      Hotness: hotness.toFixed(4),
-      ValueMultiply: (staple * hotness).toFixed(4),
-      PieceTimeValue: pieceTimeValue.toFixed(4),
-      TotalValue: totalValue.toFixed(4),
-    }
-  })
+export const columnWidths: Partial<Record<SortableKey, string>> = {
+  ItemNumber: "10%",
+  Name: "18%",
+  Quantity: "6%",
+  SoldAvgPrice: "7%",
+  SoldTotalQuantity: "7%",
+  SoldUnitQuantity: "7%",
+  StockAvgPrice: "7%",
+  StockTotalQuantity: "7%",
+  StockUnitQuantity: "7%",
+  Staple: "6%",
+  Hotness: "6%",
+  ValueMultiply: "6%",
+  PieceTimeValue: "6%",
+  TotalValue: "6%",
 }
+
+// export const enrichInventory = (items: InventoryRecord[]) => {
+//   return items.map((item) => {
+//     const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
+//     const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
+//     const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
+//     const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
+//     const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
+//     const quantity = item.Quantity || 0
+//     const staple = stockTotal ? soldTotal / stockTotal : 0
+//     const hotness = stockUnit ? soldUnit / stockUnit : 0
+//     const pieceTimeValue = price * staple * hotness
+//     const totalValue = quantity * pieceTimeValue
+
+//     return {
+//       ...item,
+//       Staple: staple.toFixed(3),
+//       Hotness: hotness.toFixed(3),
+//       ValueMultiply: (staple * hotness).toFixed(4),
+//       PieceTimeValue: pieceTimeValue.toFixed(4),
+//       TotalValue: totalValue.toFixed(4),
+//     }
+//   })
+// }

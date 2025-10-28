@@ -8,11 +8,24 @@ export default function Page() {
   const [inputValue, setInputValue] = useState("")
   const [searchValue, setSearchValue] = useState("")
   const [viewMode, setViewMode] = useState<"basic" | "advanced">("advanced")
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleGoClick = () => {
+  const handleGoClick = async () => {
     let query = inputValue.trim()
     if (!query.endsWith("-1")) query += "-1"
-    setSearchValue(query)
+
+    setIsLoading(true)
+
+    try {
+      // ⏳ Replace this with your actual data loading logic
+      await new Promise((resolve) => setTimeout(resolve, 800))
+
+      setSearchValue(query)
+    } catch (err) {
+      console.error("Error loading data:", err)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -35,10 +48,37 @@ export default function Page() {
           />
           <button
             onClick={handleGoClick}
-            className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700"
+            disabled={isLoading}
+            className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-60"
           >
             Go
           </button>
+
+          {/* 🔄 Spinner */}
+          {isLoading && (
+            <div className="flex items-center ml-3 text-blue-600 dark:text-blue-400">
+              <svg
+                className="animate-spin h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                ></path>
+              </svg>
+            </div>
+          )}
         </div>
 
         {/* Right: View Mode + Hamburger Menu */}
