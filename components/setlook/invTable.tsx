@@ -27,16 +27,13 @@ export default function InventoryTable({
   const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   const [minifigParts, setMinifigParts] = useState<Record<string, InventoryRecord[]>>({})
   const [minifigTotals, setMinifigTotals] = useState<Record<string, number>>({})
-
-  if (!records.length) return null
-
-  // 👇 Exclude "ColourName" column automatically for Minifigure tables
   const headers = title.includes("Mini")
     ? activeHeaders.filter(({ key }) => key !== "ColourName")
     : activeHeaders
 
-  // 🧠 Background load of all minifigure totals
   useEffect(() => {
+    if (!records || records.length === 0) return
+
     const fetchMinifigTotals = async () => {
       const minifigs = records.filter((r) => r.ItemType === "MINIFIG")
 
