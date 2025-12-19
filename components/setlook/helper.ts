@@ -43,26 +43,29 @@ export const columnWidths: Partial<Record<SortableKey, string>> = {
   TotalValue: "6%",
 }
 
-// export const enrichInventory = (items: InventoryRecord[]) => {
-//   return items.map((item) => {
-//     const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
-//     const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
-//     const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
-//     const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
-//     const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
-//     const quantity = item.Quantity || 0
-//     const staple = stockTotal ? soldTotal / stockTotal : 0
-//     const hotness = stockUnit ? soldUnit / stockUnit : 0
-//     const pieceTimeValue = price * staple * hotness
-//     const totalValue = quantity * pieceTimeValue
+export function enrichInventory(items: InventoryRecord[]): InventoryRecord[] {
+  return items.map((item) => {
+    const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
+    const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
+    const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
+    const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
+    const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
+    const quantity = item.Quantity || 0
 
-//     return {
-//       ...item,
-//       Staple: staple.toFixed(3),
-//       Hotness: hotness.toFixed(3),
-//       ValueMultiply: (staple * hotness).toFixed(4),
-//       PieceTimeValue: pieceTimeValue.toFixed(4),
-//       TotalValue: totalValue.toFixed(4),
-//     }
-//   })
-// }
+    const staple = stockTotal ? soldTotal / stockTotal : 0
+    const hotness = stockUnit ? soldUnit / stockUnit : 0
+
+    const pieceTimeValueRaw = Math.min(Math.max(staple, hotness), 5)
+    const pieceTimeValue = price * pieceTimeValueRaw
+    const totalValue = quantity * pieceTimeValue
+
+    return {
+      ...item,
+      Staple: staple.toFixed(3),
+      Hotness: hotness.toFixed(3),
+      ValueMultiply: pieceTimeValueRaw.toFixed(3),
+      PieceTimeValue: pieceTimeValue.toFixed(3),
+      TotalValue: totalValue.toFixed(3),
+    }
+  })
+}

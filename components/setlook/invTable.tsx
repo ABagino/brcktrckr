@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { supabase } from "@/utils/supabase/client"
-import { InventoryRecord, SortableKey, columnWidths } from "./helper"
+import { InventoryRecord, SortableKey, columnWidths, enrichInventory } from "./helper"
 
 interface Props {
   title: string
@@ -75,31 +75,8 @@ export default function InventoryTable({
 
           let parts = (data as InventoryRecord[]) ?? []
 
-          // compute metrics locally (same logic as before)
-          parts = parts.map((p) => {
-            const soldTotal = parseFloat(p.SoldTotalQuantity ?? "0") || 0
-            const stockTotal = parseFloat(p.StockTotalQuantity ?? "0") || 0
-            const soldUnit = parseFloat(p.SoldUnitQuantity ?? "0") || 0
-            const stockUnit = parseFloat(p.StockUnitQuantity ?? "0") || 0
-            const price = parseFloat(p.SoldAvgPrice ?? "0") || 0
-            const quantity = p.Quantity || 0
-
-            const staple = stockTotal ? soldTotal / stockTotal : 0
-            const hotness = stockUnit ? soldUnit / stockUnit : 0
-
-            const pieceTimeValueRaw = Math.min(staple * hotness, 10)
-            const pieceTimeValue = price * pieceTimeValueRaw
-            const totalValue = quantity * pieceTimeValue
-
-            return {
-              ...p,
-              Staple: staple.toFixed(3),
-              Hotness: hotness.toFixed(3),
-              ValueMultiply: pieceTimeValueRaw.toFixed(3),
-              PieceTimeValue: pieceTimeValue.toFixed(3),
-              TotalValue: totalValue.toFixed(3),
-            }
-          })
+          // compute metrics using shared helper
+          parts = enrichInventory(parts)
 
           const totalValueSum = parts.reduce(
             (sum, part) => sum + (parseFloat(part.TotalValue ?? "0") || 0),
@@ -133,7 +110,7 @@ export default function InventoryTable({
       if (error) throw error
       setMinifigParts((prev) => ({
         ...prev,
-        [itemNo]: (data as InventoryRecord[]) ?? [],
+        [itemNo]: enrichInventory((data as InventoryRecord[]) ?? []),
       }))
     } catch (err) {
       console.error("❌ Error fetching minifig parts on expand:", err)

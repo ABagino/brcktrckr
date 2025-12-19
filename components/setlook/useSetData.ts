@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { supabase } from "@/utils/supabase/client"
-import { SetRecord, InventoryRecord } from "./helper"
+import { SetRecord, InventoryRecord, enrichInventory } from "./helper"
 
 export function useSetData(searchValue: string) {
   const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
@@ -95,32 +95,7 @@ export function useSetData(searchValue: string) {
         }
 
         // ✅ Always run this next section for both parts and minifigs
-        enriched = enriched.map((item) => {
-          const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
-          const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
-          const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
-          const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
-          const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
-          const quantity = item.Quantity || 0
-
-          const staple = stockTotal ? soldTotal / stockTotal : 0
-          const hotness = stockUnit ? soldUnit / stockUnit : 0
-
-          // 🔹 Apply both type-specific and global caps (10 max)
-          const typeCap = item.ItemType === "MINIFIG" ? 9 : 20
-          const pieceTimeValueRaw = Math.min(staple * hotness, typeCap, 10)
-          const pieceTimeValue = price * pieceTimeValueRaw
-          const totalValue = quantity * pieceTimeValue
-
-          return {
-            ...item,
-            Staple: staple.toFixed(3),
-            Hotness: hotness.toFixed(3),
-            ValueMultiply: pieceTimeValueRaw.toFixed(3),
-            PieceTimeValue: pieceTimeValue.toFixed(3),
-            TotalValue: totalValue.toFixed(3),
-          }
-        })
+        enriched = enrichInventory(enriched)
 
 
 
