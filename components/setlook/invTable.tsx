@@ -37,19 +37,45 @@ export default function InventoryTable({
     const fetchMinifigTotals = async () => {
       const minifigs = records.filter((r) => r.ItemType === "MINIFIG")
 
-      for (const fig of minifigs) {
-        // Skip if already cached
-        if (minifigTotals[fig.ItemNumber]) continue
+      // only fetch those not already cached
+      const toFetch = minifigs
+        .map((m) => m.ItemNumber)
+        .filter((num) => !minifigTotals[num])
 
-        try {
-          const { data, error } = await supabase.rpc("get_minifigure_inventory", {
-            minifig_number: fig.ItemNumber,
-          })
-          if (error) throw error
+      if (toFetch.length === 0) return
+
+      try {
+        // run RPCs in parallel and avoid failing everything if one fails
+        const settled = await Promise.allSettled(
+          toFetch.map((num) =>
+            supabase.rpc("get_minifigure_inventory", { minifig_number: num })
+          )
+        )
+
+        const partsMap: Record<string, InventoryRecord[]> = {}
+        const totalsMap: Record<string, number> = {}
+
+        for (let idx = 0; idx < toFetch.length; idx++) {
+          const itemNo = toFetch[idx]
+          const result = settled[idx]
+
+          if (result.status === "rejected") {
+            console.error(`⚠️ Batch fetch failed for ${itemNo}:`, result.reason)
+            continue
+          }
+
+          const { data, error } = result.value as {
+            data: InventoryRecord[] | null
+            error: unknown
+          }
+          if (error) {
+            console.error(`⚠️ RPC error for ${itemNo}:`, error)
+            continue
+          }
 
           let parts = (data as InventoryRecord[]) ?? []
 
-          // This never goes through useSetData.ts, only locally
+          // compute metrics locally (same logic as before)
           parts = parts.map((p) => {
             const soldTotal = parseFloat(p.SoldTotalQuantity ?? "0") || 0
             const stockTotal = parseFloat(p.StockTotalQuantity ?? "0") || 0
@@ -61,7 +87,7 @@ export default function InventoryTable({
             const staple = stockTotal ? soldTotal / stockTotal : 0
             const hotness = stockUnit ? soldUnit / stockUnit : 0
 
-            const pieceTimeValueRaw = Math.min(staple * hotness, 10) // same cap logic
+            const pieceTimeValueRaw = Math.min(staple * hotness, 10)
             const pieceTimeValue = price * pieceTimeValueRaw
             const totalValue = quantity * pieceTimeValue
 
@@ -75,23 +101,25 @@ export default function InventoryTable({
             }
           })
 
-          // ✅ Now this will correctly sum up TotalValue
           const totalValueSum = parts.reduce(
             (sum, part) => sum + (parseFloat(part.TotalValue ?? "0") || 0),
             0
           )
 
-          // 💾 Store parts and total
-          setMinifigParts((prev) => ({ ...prev, [fig.ItemNumber]: parts }))
-          setMinifigTotals((prev) => ({ ...prev, [fig.ItemNumber]: totalValueSum }))
-        } catch (err) {
-          console.error(`⚠️ Error preloading total for ${fig.ItemNumber}:`, err)
+          partsMap[itemNo] = parts
+          totalsMap[itemNo] = totalValueSum
         }
+
+        // single state updates to avoid repeated re-renders
+        setMinifigParts((prev) => ({ ...prev, ...partsMap }))
+        setMinifigTotals((prev) => ({ ...prev, ...totalsMap }))
+      } catch (err) {
+        console.error("⚠️ Error batch fetching minifig totals:", err)
       }
     }
 
     fetchMinifigTotals()
-  }, [records.length])
+  }, [records, minifigTotals])
 
   const toggleExpanded = async (itemNo: string) => {
     setExpanded((prev) => ({ ...prev, [itemNo]: !prev[itemNo] }))
@@ -199,7 +227,7 @@ export default function InventoryTable({
                                 {title.includes("Mini") && (
                                   <button
                                     onClick={() => toggleExpanded(item.ItemNumber)}
-                                    className={`mt-2 self-start inline-flex items-center justify-center px-8 py-1.5 text-sm font-semibold rounded-md border transition-all duration-200
+                                    className={`mt-2 self-start inline-flex items-center justify-center px-4 py-1.5 text-sm font-semibold rounded-md border transition-all duration-200
                   ${expanded[item.ItemNumber]
                                         ? "bg-white text-blue-700 border-blue-700 hover:bg-blue-50 dark:bg-white dark:text-blue-700 dark:border-blue-700 dark:hover:bg-blue-200"
                                         : "bg-blue-200 text-black border-blue-600 hover:bg-blue-400 dark:bg-blue-400 dark:hover:bg-blue-200"
@@ -253,6 +281,20 @@ export default function InventoryTable({
                               {item.Hotness ?? "—"}
                             </td>
                           )
+                        case "SoldAvgPrice":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap" style={{ whiteSpace: "normal" }}>
+                              {item.SoldAvgPrice ? `${(parseFloat(item.SoldAvgPrice) || 0).toFixed(2)}` : "—"}
+                            </td>
+                          )
+
+                        case "StockAvgPrice":
+                          return (
+                            <td key={key} className="p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap" style={{ whiteSpace: "normal" }}>
+                              {item.StockAvgPrice ? `${(parseFloat(item.StockAvgPrice) || 0).toFixed(2)}` : "—"}
+                            </td>
+                          )
+
                         default:
                           return (
                             <td
@@ -352,13 +394,26 @@ export default function InventoryTable({
                                         case "PieceTimeValue":
                                           return (
                                             <td key={key} className="p-3">
-                                              {part.PieceTimeValue ? `$${part.PieceTimeValue}` : "—"}
+                                              {part.PieceTimeValue ? part.PieceTimeValue : "—"}
                                             </td>
                                           )
                                         case "TotalValue":
                                           return (
                                             <td key={key} className="p-3">
-                                              {part.TotalValue ? `$${part.TotalValue}` : "—"}
+                                              {part.TotalValue ? part.TotalValue : "—"}
+                                            </td>
+                                          )
+                                        case "SoldAvgPrice":
+                                          return (
+                                            <td key={key} className="p-3 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap" style={{ whiteSpace: "normal" }}>
+                                              {part.SoldAvgPrice ? `${(parseFloat(part.SoldAvgPrice) || 0).toFixed(2)}` : "—"}
+                                            </td>
+                                          )
+
+                                        case "StockAvgPrice":
+                                          return (
+                                            <td key={key} className="p-3 align-middle text-gray-900 dark:text-gray-100 break-words text-wrap" style={{ whiteSpace: "normal" }}>
+                                              {part.StockAvgPrice ? `${(parseFloat(part.StockAvgPrice) || 0).toFixed(2)}` : "—"}
                                             </td>
                                           )
 
