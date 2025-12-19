@@ -108,16 +108,29 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
       {/* 🧾 Set Info Bar */}
       {matchedSet && (
         <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
-          <div>
-            <p className="my-1">
-              <strong>Set Number:</strong> {matchedSet.SetNumber}
-            </p>
-            <p className="my-1">
-              <strong>Set Name:</strong> {matchedSet.SetName}
-            </p>
-            <p className="my-1">
-              <strong>Theme:</strong> {matchedSet.ThemeName}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="flex-shrink-0">
+              <img
+                src={`https://cdn.rebrickable.com/media/sets/${matchedSet.SetNumber}.jpg`}
+                alt={`${matchedSet.SetNumber} cover`}
+                className="w-24 h-24 object-contain rounded bg-gray-50 dark:bg-gray-900"
+                onError={(e) => {
+                  ;(e.currentTarget as HTMLImageElement).style.display = "none"
+                }}
+              />
+            </div>
+
+            <div>
+              <p className="my-1">
+                <strong>Set Number:</strong> {matchedSet.SetNumber}
+              </p>
+              <p className="my-1">
+                <strong>Set Name:</strong> {matchedSet.SetName}
+              </p>
+              <p className="my-1">
+                <strong>Theme:</strong> {matchedSet.ThemeName}
+              </p>
+            </div>
           </div>
 
           <div className="text-right space-y-1">
