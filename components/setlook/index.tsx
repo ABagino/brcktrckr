@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Image from "next/image"
 import { useSetData } from "./useSetData"
 import InventoryTable from "./invTable"
 import { SortableKey } from "./helper"
@@ -110,10 +111,13 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
         <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
           <div className="flex items-center gap-4">
             <div className="flex-shrink-0">
-              <img
+              <Image
                 src={`https://cdn.rebrickable.com/media/sets/${matchedSet.SetNumber}.jpg`}
                 alt={`${matchedSet.SetNumber} cover`}
+                width={96}
+                height={96}
                 className="w-24 h-24 object-contain rounded bg-gray-50 dark:bg-gray-900"
+                unoptimized
                 onError={(e) => {
                   ;(e.currentTarget as HTMLImageElement).style.display = "none"
                 }}
