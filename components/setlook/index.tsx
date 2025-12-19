@@ -146,7 +146,8 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
                 Parts: {counts.parts} (${totals.parts.toFixed(2)})
               </div>
               <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
-                Minifigs: {counts.minifigs} (${totals.minifigs.toFixed(2)})
+                Minifigs: {counts.minifigs}
+                  {counts.minifigs > 0 && ` ($${totals.minifigs.toFixed(2)})`}
               </div>
             </div>
           </div>
