@@ -108,15 +108,15 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
 
       {/* 🧾 Set Info Bar */}
       {matchedSet && (
-        <div className="flex justify-between items-center border border-gray-200 dark:border-gray-700 rounded-lg p-4 bg-white dark:bg-gray-800 shadow mb-5">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col md:flex-row justify-between md:items-center border border-gray-200 dark:border-gray-700 rounded-lg p-3 md:p-4 bg-white dark:bg-gray-800 shadow mb-5 gap-3 md:gap-4">
+          <div className="flex items-start md:items-center gap-3 md:gap-4">
             <div className="flex-shrink-0">
               <Image
                 src={`https://cdn.rebrickable.com/media/sets/${matchedSet.SetNumber}.jpg`}
                 alt={`${matchedSet.SetNumber} cover`}
                 width={96}
                 height={96}
-                className="w-24 h-24 object-contain rounded bg-gray-50 dark:bg-gray-900"
+                className="w-16 h-16 md:w-24 md:h-24 object-contain rounded bg-gray-50 dark:bg-gray-900"
                 unoptimized
                 onError={(e) => {
                   ;(e.currentTarget as HTMLImageElement).style.display = "none"
@@ -124,24 +124,24 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
               />
             </div>
 
-            <div>
-              <p className="my-1">
+            <div className="min-w-0 flex-1">
+              <p className="my-0.5 md:my-1 text-sm md:text-base">
                 <strong>Set Number:</strong> {matchedSet.SetNumber}
               </p>
-              <p className="my-1">
+              <p className="my-0.5 md:my-1 text-sm md:text-base truncate">
                 <strong>Set Name:</strong> {matchedSet.SetName}
               </p>
-              <p className="my-1">
+              <p className="my-0.5 md:my-1 text-sm md:text-base">
                 <strong>Theme:</strong> {matchedSet.ThemeName}
               </p>
             </div>
           </div>
 
-          <div className="text-right space-y-1">
-            <div className="text-2xl font-bold">
+          <div className="md:text-right space-y-2 md:space-y-1 border-t md:border-t-0 pt-3 md:pt-0">
+            <div className="text-xl md:text-2xl font-bold">
               Total Value: ${totals.total.toFixed(2)}
             </div>
-            <div className="flex items-center justify-end gap-2 text-sm">
+            <div className="flex items-center md:justify-end gap-2 text-xs md:text-sm flex-wrap">
               <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
                 Parts: {counts.parts} (${totals.parts.toFixed(2)})
               </div>
@@ -165,6 +165,7 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
           imagePath={(i) =>
             `https://img.bricklink.com/ItemImage/MN/0/${i.ItemNumber}.png`
           }
+          viewMode={viewMode}
         />
       )}
 
@@ -178,6 +179,7 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
           imagePath={(i) =>
             `https://img.bricklink.com/ItemImage/PN/${i.ColourID}/${i.ItemNumber}.png`
           }
+          viewMode={viewMode}
         />
       )}
     </div>

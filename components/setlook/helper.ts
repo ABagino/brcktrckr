@@ -43,6 +43,17 @@ export const columnWidths: Partial<Record<SortableKey, string>> = {
   TotalValue: "6%",
 }
 
+export const columnWidthsSmall: Partial<Record<SortableKey, string>> = {
+  ItemNumber: "12%",
+  Name: "22%",
+  Quantity: "8%",
+  SoldAvgPrice: "12%",
+  ValueMultiply: "12%",
+  PieceTimeValue: "12%",
+  TotalValue: "12%",
+  ColourName: "10%",
+}
+
 export function enrichInventory(items: InventoryRecord[]): InventoryRecord[] {
   return items.map((item) => {
     const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
