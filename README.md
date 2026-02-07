@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# brcktrckr
 
-## Getting Started
+A LEGO brick set inventory analyzer that helps calculate the value of individual pieces within a set using market data from BrickLink.
 
-First, run the development server:
+## What This Application Does
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**brcktrckr** allows users to search for LEGO sets by set number and displays detailed inventory information for each piece, including calculated valuation metrics based on sales and stock data. The application computes custom metrics to help determine piece value:
+
+- **Staple**: Ratio of sold quantity to stock quantity (indicates demand vs supply)
+- **Hotness**: Ratio of sold units to stock units (market velocity indicator)
+- **Value Multiply**: Staple × Hotness (combined market strength)
+- **Piece Time Value**: Average sold price × Staple × Hotness
+- **Total Value**: Quantity × Piece Time Value
+
+## Project Structure
+
+```
+brcktrckr/
+├── app/
+│   ├── page.tsx              # Main search and inventory display page
+│   ├── layout.tsx            # Root layout with font configuration
+│   ├── globals.css           # Global styles (TailwindCSS)
+│   └── setlook/
+│       └── page.tsx          # Coming soon placeholder page
+├── utils/
+│   └── supabase/
+│       └── client.ts         # Supabase client configuration
+├── public/                   # Static assets
+├── package.json              # Dependencies and scripts
+├── tsconfig.json             # TypeScript configuration
+├── next.config.ts            # Next.js configuration
+└── eslint.config.mjs         # ESLint configuration
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### `app/page.tsx` (Main Application)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This is the core of the application. It implements:
 
-## Learn More
+**State Management:**
+- Search input and matched set data
+- Inventory records with enriched valuation metrics
+- Sorting configuration (column, direction)
+- Error states (set not found, missing inventory)
 
-To learn more about Next.js, take a look at the following resources:
+**Data Flow:**
+1. User enters set number and clicks "Go"
+2. Calls `get_set` RPC to Supabase to find matching set
+3. Calls `get_inventory` RPC to retrieve all pieces in that set
+4. Enriches each inventory row with calculated metrics (Staple, Hotness, etc.)
+5. Displays sortable table with all piece information
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Key Features:**
+- Client-side sorting by any column (ascending/descending)
+- Lazy-loaded BrickLink piece images
+- Calculated total value sum for the entire set
+- Responsive table with sticky header
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+**TypeScript Interfaces:**
+- `SetRecord`: Set metadata (number, name, theme)
+- `InventoryRecord`: Piece data with all BrickLink metrics
 
-## Deploy on Vercel
+### `utils/supabase/client.ts`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Creates the Supabase client instance used for database queries. Requires environment variables:
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### `app/layout.tsx`
+
+Root layout that:
+- Configures Geist and Geist Mono fonts from Google Fonts
+- Sets up global CSS variables for font usage
+- Applies antialiasing to text
+
+### `app/setlook/page.tsx`
+
+Placeholder page showing "Coming Soon" with gradient background.
+
+## Tech Stack
+
+- **Framework**: Next.js 15.5.4 with App Router
+- **React**: 19.1.0 (client-side interactivity)
+- **Database**: Supabase with custom RPC functions
+- **Styling**: TailwindCSS 4.0
+- **TypeScript**: Full type safety
+- **Build Tool**: Turbopack (Next.js's Rust-based bundler)
+
+## Important Database Functions
+
+The application relies on two Supabase RPC functions:
+
+1. **`get_set(search_number)`**: Returns set information matching the provided set number
+2. **`get_inventory(set_number)`**: Returns all inventory items for a specific set with BrickLink pricing data
+
+## Running the Application
+
+```bash
+npm run dev    # Start development server with Turbopack
+npm run build  # Production build
+npm run start  # Start production server
+```
+
+Access the application at `http://localhost:3000`
+
+## Environment Setup
+
+Create a `.env.local` file with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+```

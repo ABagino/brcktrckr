@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prepare": "node -e \"if (!require('fs').existsSync('node_modules')) process.exit(1)\" || npm install"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -15,7 +16,7 @@
     "framer-motion": "^12.23.24",
     "gsap": "^3.13.0",
     "lucide-react": "^0.544.0",
-    "next": "15.5.9",
+    "next": "^15.5.12",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
