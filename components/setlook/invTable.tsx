@@ -141,7 +141,7 @@ export default function InventoryTable({
       </h2>
 
       <div className="w-full overflow-x-auto mb-6">
-        <table className={`w-full table-fixed border-collapse bg-white dark:bg-gray-800 shadow text-base ${isSmallScreen && viewMode === "advanced" ? "min-w-[800px]" : ""}`}>
+        <table className={`w-full border-collapse bg-white dark:bg-gray-800 shadow text-base ${viewMode === "advanced" ? "min-w-[1200px]" : "min-w-[800px]"}`}>
           <thead>
             <tr>
               {headers.map(({ key, label }) => (

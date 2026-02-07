@@ -15,8 +15,19 @@ function SetLookContent() {
   const [viewMode, setViewMode] = useState<"basic" | "advanced">("advanced")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isSmallScreen, setIsSmallScreen] = useState(false)
+  const [hasSetInitialView, setHasSetInitialView] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Set initial view mode based on screen size (only once)
+  useEffect(() => {
+    if (!hasSetInitialView) {
+      const isSmall = window.innerWidth < 768
+      if (isSmall) {
+        setViewMode("basic")
+      }
+      setHasSetInitialView(true)
+    }
+  }, [hasSetInitialView])
 
   // Populate input from URL query parameter on mount
   useEffect(() => {
@@ -25,25 +36,6 @@ function SetLookContent() {
       setInputValue(queryParam)
     }
   }, [searchParams])
-
-  // Detect screen size and default to Basic view on small screens
-  useEffect(() => {
-    const checkScreenSize = () => {
-      const isSmall = window.innerWidth < 768 // md breakpoint
-      setIsSmallScreen(isSmall)
-    }
-
-    checkScreenSize()
-    window.addEventListener("resize", checkScreenSize)
-    return () => window.removeEventListener("resize", checkScreenSize)
-  }, [])
-
-  // Default to Basic on small screens on initial load
-  useEffect(() => {
-    if (isSmallScreen && viewMode === "advanced") {
-      setViewMode("basic")
-    }
-  }, [isSmallScreen, viewMode]) // Only run when isSmallScreen or viewMode changes initially
 
   const handleGoClick = useCallback(async () => {
     const query = inputValue.trim()

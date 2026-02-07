@@ -67,7 +67,7 @@ export default function HomePage() {
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Enter set number (e.g., 10375)..."
+              placeholder="Enter set # (eg. 10375)..."
               className="w-full px-6 py-4 pr-14 text-lg rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg"
             />
             <button
