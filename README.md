@@ -20,8 +20,10 @@ brcktrckr/
 │   ├── page.tsx              # Main search and inventory display page
 │   ├── layout.tsx            # Root layout with font configuration
 │   ├── globals.css           # Global styles (TailwindCSS)
-│   └── setlook/
-│       └── page.tsx          # Coming soon placeholder page
+│   ├── set-look/
+│   │   └── page.tsx          # Inventory search page
+│   └── set-rank/
+│       └── page.tsx          # Set ranking page
 ├── utils/
 │   └── supabase/
 │       └── client.ts         # Supabase client configuration
@@ -74,7 +76,7 @@ Root layout that:
 - Sets up global CSS variables for font usage
 - Applies antialiasing to text
 
-### `app/setlook/page.tsx`
+### `app/set-look/page.tsx`
 
 Placeholder page showing "Coming Soon" with gradient background.
 

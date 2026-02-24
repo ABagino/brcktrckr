@@ -9,7 +9,7 @@ export function useSetData(searchValue: string) {
   const [parsedInventory, setParsedInventory] = useState<InventoryRecord[]>([])
   const [isNotFound, setIsNotFound] = useState(false)
   const [totals, setTotals] = useState({ total: 0, parts: 0, minifigs: 0 })
-  const [counts, setCounts] = useState({ parts: 0, minifigs: 0 })
+  const [counts, setCounts] = useState({ parts: 0, minifigs: 0, partsPieces: 0, minifigPieces: 0 })
 
   useEffect(() => {
     if (!searchValue) return
@@ -21,7 +21,7 @@ export function useSetData(searchValue: string) {
       setMatchedSet(null)
       setParsedInventory([])
       setTotals({ total: 0, parts: 0, minifigs: 0 })
-      setCounts({ parts: 0, minifigs: 0 })
+      setCounts({ parts: 0, minifigs: 0, partsPieces: 0, minifigPieces: 0 })
 
       try {
         // 1️⃣ Fetch Set
@@ -97,23 +97,61 @@ export function useSetData(searchValue: string) {
         // ✅ Always run this next section for both parts and minifigs
         enriched = enrichInventory(enriched)
 
-
-
-
         // 5️⃣ Compute totals + counts
-        const total = enriched.reduce((s, i) => s + parseFloat(i.TotalValue ?? "0"), 0)
         const parts = enriched
           .filter((i) => i.ItemType === "PART")
           .reduce((s, i) => s + parseFloat(i.TotalValue ?? "0"), 0)
-        const minifigs = enriched
-          .filter((i) => i.ItemType === "MINIFIG")
-          .reduce((s, i) => s + parseFloat(i.TotalValue ?? "0"), 0)
+
+        // 🧮 For minifigs: use max(minifig value, sum of its parts)
+        const minifigRecords = enriched.filter((i) => i.ItemType === "MINIFIG")
+        let minifigs = 0
+        let minifigPiecesSum = 0
+
+        for (const minifig of minifigRecords) {
+          const minifigValue = parseFloat(minifig.TotalValue ?? "0")
+          const minifigQty = Number(minifig.Quantity ?? 1)
+          
+          // Fetch parts for this minifigure
+          const { data: partsData } = await supabase.rpc("get_minifigure_inventory", {
+            minifig_number: minifig.ItemNumber,
+          })
+          
+          let partsSum = 0
+          if (partsData && partsData.length > 0) {
+            const enrichedParts = enrichInventory(partsData as InventoryRecord[])
+            partsSum = enrichedParts.reduce(
+              (sum, part) => sum + parseFloat(part.TotalValue ?? "0"),
+              0
+            )
+            
+            // Calculate total pieces in this minifigure's breakdown
+            const piecesInMinifig = enrichedParts.reduce(
+              (sum, part) => sum + Number(part.Quantity ?? 0),
+              0
+            )
+            // Multiply by the quantity of this minifigure
+            minifigPiecesSum += piecesInMinifig * minifigQty
+          }
+          
+          // Use the higher value
+          minifigs += Math.max(minifigValue, partsSum)
+        }
+
+        const total = parts + minifigs
+
+        const partsRecords = enriched.filter((i) => i.ItemType === "PART")
+        const partsPiecesSum = partsRecords.reduce(
+          (sum, part) => sum + Number(part.Quantity ?? 0),
+          0
+        )
 
         setParsedInventory(enriched)
         setTotals({ total, parts, minifigs })
         setCounts({
-          parts: enriched.filter((i) => i.ItemType === "PART").length,
-          minifigs: enriched.filter((i) => i.ItemType === "MINIFIG").length,
+          parts: partsRecords.length,
+          minifigs: minifigRecords.length,
+          partsPieces: partsPiecesSum,
+          minifigPieces: minifigPiecesSum,
         })
       } catch (err: unknown) {
         // ✅ Properly typed error handling

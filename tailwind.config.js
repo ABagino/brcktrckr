@@ -5,7 +5,7 @@ module.exports = {
     "./pages/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: "media", // auto-detect system theme
+  darkMode: "class",
   theme: {
     extend: {},
   },

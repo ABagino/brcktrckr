@@ -26,21 +26,28 @@ export default function NavMenu() {
             className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={() => setOpen(false)}
           >
-            Home Page
+            Home
           </Link>
           <Link
-            href="/setlook"
+            href="/set-look"
             className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={() => setOpen(false)}
           >
-            Set Lookup Page
+            Inventory Search
+          </Link>
+          <Link
+            href="/set-rank"
+            className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+            onClick={() => setOpen(false)}
+          >
+            Rank Sets
           </Link>
           <Link
             href="/contact"
             className="block px-4 py-2 text-gray-800 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
             onClick={() => setOpen(false)}
           >
-            Contact Page
+            Contact
           </Link>
         </div>
       )}

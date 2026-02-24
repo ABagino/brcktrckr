@@ -335,7 +335,13 @@ export default function InventoryTable({
                               </thead>
 
                               <tbody>
-                                {minifigParts[item.ItemNumber].map((part, j) => (
+                                {minifigParts[item.ItemNumber]
+                                  .sort((a, b) => {
+                                    const valA = parseFloat(a.PieceTimeValue ?? "0") || 0
+                                    const valB = parseFloat(b.PieceTimeValue ?? "0") || 0
+                                    return valB - valA // Sort descending (highest first)
+                                  })
+                                  .map((part, j) => (
                                   <tr
                                     key={`${item.ItemNumber}-part-${j}`}
                                     className={j % 2 === 0 ? "bg-gray-50 dark:bg-gray-900/40" : ""}

@@ -25,6 +25,9 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
     direction: "asc" | "desc"
   }>({ key: null, direction: "asc" })
 
+  const [showPartsTooltip, setShowPartsTooltip] = useState(false)
+  const [showMinifigsTooltip, setShowMinifigsTooltip] = useState(false)
+
   const [sortConfigParts, setSortConfigParts] = useState<{
     key: SortableKey | null
     direction: "asc" | "desc"
@@ -142,12 +145,44 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
               Total Value: ${totals.total.toFixed(2)}
             </div>
             <div className="flex items-center md:justify-end gap-2 text-xs md:text-sm flex-wrap">
-              <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
-                Parts: {counts.parts} (${totals.parts.toFixed(2)})
+              <div className="relative inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
+                <span>Parts: {counts.parts}/{counts.partsPieces} (${totals.parts.toFixed(2)})</span>
+                <button
+                  className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-blue-600 dark:border-blue-400 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
+                  onMouseEnter={() => setShowPartsTooltip(true)}
+                  onMouseLeave={() => setShowPartsTooltip(false)}
+                  onClick={() => setShowPartsTooltip(!showPartsTooltip)}
+                >
+                  <span className="text-[10px] font-bold">?</span>
+                </button>
+                {showPartsTooltip && (
+                  <div className="absolute z-10 bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[200px] p-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded shadow-lg whitespace-normal">
+                    Number of Lots / Number of Pieces<br />
+                    (Sum of the Part&apos;s &quot;Total Value&quot; column.)
+                  </div>
+                )}
               </div>
-              <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
-                Minifigs: {counts.minifigs}
-                  {counts.minifigs > 0 && ` ($${totals.minifigs.toFixed(2)})`}
+              <div className="relative inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
+                <span>Minifigs: {counts.minifigs > 0 ? `${counts.minifigs}/${counts.minifigPieces}` : "-"}
+                  {counts.minifigs > 0 && ` ($${totals.minifigs.toFixed(2)})`}</span>
+                {counts.minifigs > 0 && (
+                  <>
+                    <button
+                      className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-yellow-600 dark:border-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-700 transition-colors"
+                      onMouseEnter={() => setShowMinifigsTooltip(true)}
+                      onMouseLeave={() => setShowMinifigsTooltip(false)}
+                      onClick={() => setShowMinifigsTooltip(!showMinifigsTooltip)}
+                    >
+                      <span className="text-[10px] font-bold">?</span>
+                    </button>
+                    {showMinifigsTooltip && (
+                      <div className="absolute z-10 bottom-full mb-2 right-0 w-max max-w-[220px] p-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded shadow-lg whitespace-normal">
+                        Number of Unique Minifigures / Total Quantity<br />
+                        (Sum of higher price per minifigure, between the minifigure&apos;s individual cost vs the minifigure&apos;s parts total cost.)
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>

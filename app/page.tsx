@@ -1,19 +1,64 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import NavMenu from "@/components/NavMenu";
 import { Search, TrendingUp, Package, BarChart3 } from "lucide-react";
 
+type ThemePreference = "light" | "dark" | "system";
+const THEME_STORAGE_KEY = "theme-preference";
+
 export default function HomePage() {
   const [searchInput, setSearchInput] = useState("");
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
+  const [hasLoadedThemePreference, setHasLoadedThemePreference] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    const savedPreference = localStorage.getItem(THEME_STORAGE_KEY);
+    if (
+      savedPreference === "light" ||
+      savedPreference === "dark" ||
+      savedPreference === "system"
+    ) {
+      setThemePreference(savedPreference);
+    }
+
+    setHasLoadedThemePreference(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedThemePreference) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const applyTheme = () => {
+      const shouldUseDark =
+        themePreference === "dark" ||
+        (themePreference === "system" && mediaQuery.matches);
+      document.documentElement.classList.toggle("dark", shouldUseDark);
+    };
+
+    applyTheme();
+    localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+
+    const handleSystemThemeChange = () => {
+      if (themePreference === "system") {
+        applyTheme();
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, [themePreference, hasLoadedThemePreference]);
 
   const handleQuickSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchInput.trim()) {
-      router.push(`/setlook?q=${encodeURIComponent(searchInput.trim())}`);
+      router.push(`/set-look?q=${encodeURIComponent(searchInput.trim())}`);
     }
   };
 
@@ -22,7 +67,7 @@ export default function HomePage() {
       icon: <Package className="w-8 h-8" />,
       title: "Set Explorer",
       description: "Search any LEGO set instantly and view detailed part inventories with real-time pricing data.",
-      link: "/setlook",
+      link: "/set-look",
       linkText: "Start Searching",
       gradient: "from-blue-500 to-cyan-500"
     },
@@ -30,16 +75,16 @@ export default function HomePage() {
       icon: <TrendingUp className="w-8 h-8" />,
       title: "Value Analysis",
       description: "Identify which parts and sets offer the best value with smart calculations and market insights.",
-      link: "/setlook",
+      link: "/set-look",
       linkText: "Analyze Values",
       gradient: "from-yellow-500 to-orange-500"
     },
     {
       icon: <BarChart3 className="w-8 h-8" />,
-      title: "Market Trends",
-      description: "Track price movements over time and benchmark your collection against current market data.",
-      link: "/setlook",
-      linkText: "COMING SOON...",
+      title: "Set Value Explorer",
+      description: "View top sets by piece count, total value, year, theme, and multiplicative effect.",
+      link: "/set-rank",
+      linkText: "Explore Top Sets",
       gradient: "from-purple-500 to-pink-500"
     }
   ];
@@ -80,13 +125,21 @@ export default function HomePage() {
           </div>
         </form>
 
-        {/* Primary CTA Button */}
-        <Link
-          href="/setlook"
-          className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
-        >
-          Start Set Searching →
-        </Link>
+        {/* Primary CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/set-look"
+            className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+          >
+            Start Set Searching →
+          </Link>
+          <Link
+            href="/set-rank"
+            className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+          >
+            Explore Top Sets →
+          </Link>
+        </div>
       </header>
 
       {/* Feature Cards */}
@@ -138,7 +191,7 @@ export default function HomePage() {
           <div className="flex flex-wrap justify-center gap-6 text-sm md:text-base">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              <span className="text-gray-700 dark:text-gray-300">Free Forever</span>
+              <span className="text-gray-700 dark:text-gray-300">Free</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
@@ -155,11 +208,25 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="py-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
         <p>© {new Date().getFullYear()} BrckTrckr · Built for BrickLinkers Worldwide</p>
-        <p className="mt-2">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <label htmlFor="themePreference" className="text-gray-600 dark:text-gray-300">
+            Theme:
+          </label>
+          <select
+            id="themePreference"
+            value={themePreference}
+            onChange={(e) => setThemePreference(e.target.value as ThemePreference)}
+            className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+          >
+            <option value="system">System Default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <span className="mx-1 text-gray-400 dark:text-gray-500" aria-hidden="true">|</span>
           <Link href="/contact" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
             Contact Us
           </Link>
-        </p>
+        </div>
       </footer>
     </div>
   );
