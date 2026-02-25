@@ -11,12 +11,14 @@ import {
 } from "@/utils/supabase/setValueMv"
 
 const currentYear = new Date().getFullYear()
-const MIN_LEGO_YEAR = 2020
+const MIN_LEGO_YEAR = 2024
 const PAGE_SIZE = 100
 
 type SortColumn =
   | "set_num"
   | "piece_qty"
+  | "part_value_indexed"
+  | "minifig_value_indexed"
   | "total_value"
   | "value_per_piece"
   | "multiplicative_effect"
@@ -26,6 +28,14 @@ type SortDirection = "asc" | "desc"
 function getDefaultSort(mode: SetValueMode): { column: SortColumn; direction: SortDirection } {
   if (mode === "most_pieces") {
     return { column: "piece_qty", direction: "desc" }
+  }
+
+  if (mode === "highest_part_value") {
+    return { column: "part_value_indexed", direction: "desc" }
+  }
+
+  if (mode === "highest_minifig_value") {
+    return { column: "minifig_value_indexed", direction: "desc" }
   }
 
   if (mode === "highest_total_value") {
@@ -52,7 +62,7 @@ export default function SetValuePage() {
   const [sortColumn, setSortColumn] = useState<SortColumn>("piece_qty")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
   const [currentPage, setCurrentPage] = useState(1)
-  const [startYearInput, setStartYearInput] = useState<string>("2020")
+  const [startYearInput, setStartYearInput] = useState<string>(String(MIN_LEGO_YEAR))
   const [endYearInput, setEndYearInput] = useState<string>(String(currentYear))
   const [themeSearch, setThemeSearch] = useState<string>("")
   const [selectedThemes, setSelectedThemes] = useState<string[]>([])
@@ -112,8 +122,17 @@ export default function SetValuePage() {
         return sortDirection === "asc" ? textCompare : -textCompare
       }
 
-      const leftValue = Number(left[sortColumn])
-      const rightValue = Number(right[sortColumn])
+      let leftValue: number
+      let rightValue: number
+
+      if (sortColumn === "minifig_value_indexed") {
+        leftValue = Math.max(Number(left.minifig_value_indexed), Number(left.minifig_part_value_indexed))
+        rightValue = Math.max(Number(right.minifig_value_indexed), Number(right.minifig_part_value_indexed))
+      } else {
+        leftValue = Number(left[sortColumn])
+        rightValue = Number(right[sortColumn])
+      }
+
       const numberCompare = leftValue - rightValue
       return sortDirection === "asc" ? numberCompare : -numberCompare
     })
@@ -237,15 +256,15 @@ export default function SetValuePage() {
       </div>
 
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Set Value Explorer</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Set Rank</h1>
         <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
-          Query `set_value_mv`, apply year/theme filters, sort by clicking table headers, and browse paginated results.
+          Pick a year range, choose your favorite themes, and discover which sets come out on top.
         </p>
 
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label htmlFor="mode" className="block text-sm font-medium mb-1">
-              Query mode
+              Ranking Style:
             </label>
             <select
               id="mode"
@@ -254,6 +273,8 @@ export default function SetValuePage() {
               className="w-full p-2.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
             >
               <option value="most_pieces">Rank by piece count</option>
+              <option value="highest_part_value">Rank by part value</option>
+              <option value="highest_minifig_value">Rank by minifigure value</option>
               <option value="highest_total_value">Rank by total value</option>
               <option value="multiplicative_effect">Rank by multiplicative effect</option>
             </select>
@@ -261,7 +282,7 @@ export default function SetValuePage() {
 
           <div>
             <label htmlFor="startYear" className="block text-sm font-medium mb-1">
-              Start year
+              Start Year:
             </label>
             <input
               id="startYear"
@@ -277,7 +298,7 @@ export default function SetValuePage() {
 
           <div>
             <label htmlFor="endYear" className="block text-sm font-medium mb-1">
-              End year
+              End Year:
             </label>
             <input
               id="endYear"
@@ -293,7 +314,7 @@ export default function SetValuePage() {
 
           <div className="relative">
             <label htmlFor="themeSearch" className="block text-sm font-medium mb-1">
-              Themes (multi-select)
+              Themes: <span className="italic">(multi-select)</span>
             </label>
             <input
               id="themeSearch"
@@ -375,7 +396,7 @@ export default function SetValuePage() {
                 <tr>
                   <th className="text-left p-3">
                     <button type="button" onClick={() => handleSortClick("set_num")} className="font-semibold hover:underline">
-                      Set #
+                      Set # | Name
                       {sortLabel("set_num")}
                     </button>
                   </th>
@@ -385,6 +406,18 @@ export default function SetValuePage() {
                     <button type="button" onClick={() => handleSortClick("piece_qty")} className="font-semibold hover:underline">
                       Pieces
                       {sortLabel("piece_qty")}
+                    </button>
+                  </th>
+                  <th className="text-right p-3">
+                    <button type="button" onClick={() => handleSortClick("part_value_indexed")} className="font-semibold hover:underline">
+                      Part Value
+                      {sortLabel("part_value_indexed")}
+                    </button>
+                  </th>
+                  <th className="text-right p-3">
+                    <button type="button" onClick={() => handleSortClick("minifig_value_indexed")} className="font-semibold hover:underline">
+                      Minifig Value
+                      {sortLabel("minifig_value_indexed")}
                     </button>
                   </th>
                   <th className="text-right p-3">
@@ -410,7 +443,7 @@ export default function SetValuePage() {
               <tbody>
                 {!loading && sortedRows.length === 0 && !error && (
                   <tr>
-                    <td colSpan={7} className="p-6 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={10} className="p-6 text-center text-gray-500 dark:text-gray-400">
                       No sets found for this filter.
                     </td>
                   </tr>
@@ -430,6 +463,8 @@ export default function SetValuePage() {
                     <td className="p-3">{row.theme_name}</td>
                     <td className="p-3 text-right">{row.year}</td>
                     <td className="p-3 text-right">{numberFormat(row.piece_qty)}</td>
+                    <td className="p-3 text-right">{currency(row.part_value_indexed)}</td>
+                    <td className="p-3 text-right">{currency(Math.max(row.minifig_value_indexed, row.minifig_part_value_indexed))}</td>
                     <td className="p-3 text-right">{currency(row.total_value)}</td>
                     <td className="p-3 text-right">{currency(row.value_per_piece)}</td>
                     <td className="p-3 text-right">{row.multiplicative_effect.toFixed(2)}x</td>

@@ -22,6 +22,8 @@ export interface SetValueRow {
 
 export type SetValueMode =
   | "most_pieces"
+  | "highest_part_value"
+  | "highest_minifig_value"
   | "highest_total_value"
   | "multiplicative_effect"
 
@@ -92,6 +94,10 @@ export async function getSetValueRows(
 
   if (mode === "most_pieces") {
     query = query.order("piece_qty", { ascending: false }).limit(QUERY_LIMIT)
+  } else if (mode === "highest_part_value") {
+    query = query.order("part_value_indexed", { ascending: false }).limit(QUERY_LIMIT)
+  } else if (mode === "highest_minifig_value") {
+    query = query.order("minifig_value_indexed", { ascending: false }).limit(QUERY_LIMIT)
   } else if (mode === "highest_total_value") {
     query = query.order("total_value", { ascending: false }).limit(QUERY_LIMIT)
   } else if (mode === "multiplicative_effect") {
