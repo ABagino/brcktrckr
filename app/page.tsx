@@ -1,305 +1,233 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { supabase } from "@/utils/supabase/client"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import NavMenu from "@/components/NavMenu";
+import { Search, TrendingUp, Package, BarChart3 } from "lucide-react";
 
-// 🔹 Supabase return types
-interface SetRecord {
-  SetNumber: string
-  SetName: string
-  Theme: string
-}
+type ThemePreference = "light" | "dark" | "system";
+const THEME_STORAGE_KEY = "theme-preference";
 
-interface InventoryRecord {
-  ItemNumber: string
-  Name: string
-  ColourID: number
-  ColourName: string
-  Quantity: number
-  SoldAvgPrice: string | null
-  SoldTotalQuantity: string | null
-  SoldUnitQuantity: string | null
-  StockAvgPrice: string | null
-  StockTotalQuantity: string | null
-  StockUnitQuantity: string | null
-  Staple?: string
-  Hotness?: string
-  ValueMultiply?: string
-  PieceTimeValue?: string
-  TotalValue?: string
-}
-
-type SortableKey = keyof InventoryRecord
-
-// 🔹 Table headers mapping (label shown → key used for sorting)
-const headers: { key: SortableKey; label: string }[] = [
-  { key: "ItemNumber", label: "Item Number" },
-  { key: "Name", label: "Name" },
-  { key: "ColourName", label: "Colour Name" },
-  { key: "Quantity", label: "Quantity" },
-  { key: "SoldAvgPrice", label: "Sold Avg Price" },
-  { key: "SoldTotalQuantity", label: "Sold Total Quantity" },
-  { key: "SoldUnitQuantity", label: "Sold Unit Quantity" },
-  { key: "StockAvgPrice", label: "Stock Avg Price" },
-  { key: "StockTotalQuantity", label: "Stock Total Quantity" },
-  { key: "StockUnitQuantity", label: "Stock Unit Quantity" },
-  { key: "Staple", label: "Staple" },
-  { key: "Hotness", label: "Hotness" },
-  { key: "ValueMultiply", label: "Value Multiply" },
-  { key: "PieceTimeValue", label: "Piece Time Value" },
-  { key: "TotalValue", label: "Total Value" },
-]
-
-export default function SetPage() {
-  const [inputValue, setInputValue] = useState("")
-  const [searchValue, setSearchValue] = useState("")
-  const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
-  const [parsedInventory, setParsedInventory] = useState<InventoryRecord[]>([])
-  const [totalValueSum, setTotalValueSum] = useState(0)
-  const [setNotFound, setSetNotFound] = useState(false)
-  const [inventoryMissing, setInventoryMissing] = useState(false)
-  const [sortConfig, setSortConfig] = useState<{
-    key: SortableKey | null
-    direction: "asc" | "desc"
-  }>({
-    key: null,
-    direction: "asc",
-  })
-
-  const handleGoClick = () => setSearchValue(inputValue)
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") handleGoClick()
-  }
+export default function HomePage() {
+  const [searchInput, setSearchInput] = useState("");
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system");
+  const [hasLoadedThemePreference, setHasLoadedThemePreference] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    if (!searchValue) return
-    setMatchedSet(null)
-    setParsedInventory([])
-    setTotalValueSum(0)
-    setSetNotFound(false)
-    setInventoryMissing(false)
-
-    const loadData = async () => {
-      try {
-        // 🔹 Look up set
-        const { data: setData, error: setError } = await supabase.rpc("get_set", {
-          search_number: searchValue,
-        })
-        if (setError) throw setError
-        if (!setData || setData.length === 0) return setSetNotFound(true)
-
-        const foundSet = setData[0] as SetRecord
-        setMatchedSet(foundSet)
-
-        // 🔹 Look up inventory
-        const { data: inventory, error: invError } = await supabase.rpc(
-          "get_inventory",
-          { set_number: foundSet.SetNumber }
-        )
-        if (invError) throw invError
-        if (!inventory || inventory.length === 0) return setInventoryMissing(true)
-
-        // 🔹 Enrich rows
-        const enriched: InventoryRecord[] = (inventory as InventoryRecord[]).map(
-          (item) => {
-            const soldTotal = parseFloat(item.SoldTotalQuantity ?? "0") || 0
-            const stockTotal = parseFloat(item.StockTotalQuantity ?? "0") || 0
-            const soldUnit = parseFloat(item.SoldUnitQuantity ?? "0") || 0
-            const stockUnit = parseFloat(item.StockUnitQuantity ?? "0") || 0
-            const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
-            const quantity = item.Quantity || 0
-            const staple = stockTotal ? soldTotal / stockTotal : 0
-            const hotness = stockUnit ? soldUnit / stockUnit : 0
-            const pieceTimeValue = price * staple * hotness
-            const totalValue = quantity * pieceTimeValue
-            return {
-              ...item,
-              Staple: staple.toFixed(4),
-              Hotness: hotness.toFixed(4),
-              ValueMultiply: (staple * hotness).toFixed(4),
-              PieceTimeValue: pieceTimeValue.toFixed(4),
-              TotalValue: totalValue.toFixed(4),
-            }
-          }
-        )
-
-        setParsedInventory(enriched)
-        setTotalValueSum(
-          enriched.reduce((sum, i) => sum + parseFloat(i.TotalValue ?? "0"), 0)
-        )
-      } catch (err) {
-        console.error(err)
-        setSetNotFound(true)
-      }
+    const savedPreference = localStorage.getItem(THEME_STORAGE_KEY);
+    if (
+      savedPreference === "light" ||
+      savedPreference === "dark" ||
+      savedPreference === "system"
+    ) {
+      setThemePreference(savedPreference);
     }
-    loadData()
-  }, [searchValue])
 
-  const sortedInventory = useMemo(() => {
-    if (!sortConfig.key) return parsedInventory
-    const { key, direction } = sortConfig
+    setHasLoadedThemePreference(true);
+  }, []);
 
-    return [...parsedInventory].sort((a, b) => {
-      const cmp =
-        key === "ItemNumber" || key === "Name" || key === "ColourName"
-          ? String(a[key] ?? "").localeCompare(String(b[key] ?? ""))
-          : (parseFloat(a[key] as string) || 0) -
-            (parseFloat(b[key] as string) || 0)
-      return direction === "asc" ? cmp : -cmp
-    })
-  }, [parsedInventory, sortConfig])
+  useEffect(() => {
+    if (!hasLoadedThemePreference) {
+      return;
+    }
 
-  const handleSort = (key: SortableKey) =>
-    setSortConfig((prev) => ({
-      key,
-      direction: prev.key === key && prev.direction === "asc" ? "desc" : "asc",
-    }))
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-  const renderSortArrow = (key: SortableKey) =>
-    sortConfig.key === key
-      ? sortConfig.direction === "asc"
-        ? " ↑"
-        : " ↓"
-      : ""
+    const applyTheme = () => {
+      const shouldUseDark =
+        themePreference === "dark" ||
+        (themePreference === "system" && mediaQuery.matches);
+      document.documentElement.classList.toggle("dark", shouldUseDark);
+    };
+
+    applyTheme();
+    localStorage.setItem(THEME_STORAGE_KEY, themePreference);
+
+    const handleSystemThemeChange = () => {
+      if (themePreference === "system") {
+        applyTheme();
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleSystemThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleSystemThemeChange);
+  }, [themePreference, hasLoadedThemePreference]);
+
+  const handleQuickSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchInput.trim()) {
+      router.push(`/set-look?q=${encodeURIComponent(searchInput.trim())}`);
+    }
+  };
+
+  const features = [
+    {
+      icon: <Package className="w-8 h-8" />,
+      title: "Set Explorer",
+      description: "Search any LEGO set instantly and view detailed part inventories with real-time pricing data.",
+      link: "/set-look",
+      linkText: "Start Searching",
+      gradient: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: <TrendingUp className="w-8 h-8" />,
+      title: "Value Analysis",
+      description: "Identify which parts and sets offer the best value with smart calculations and market insights.",
+      link: "/set-look",
+      linkText: "Analyze Values",
+      gradient: "from-yellow-500 to-orange-500"
+    },
+    {
+      icon: <BarChart3 className="w-8 h-8" />,
+      title: "Set Value Explorer",
+      description: "View top sets by piece count, total value, year, theme, and multiplicative effect.",
+      link: "/set-rank",
+      linkText: "Explore Top Sets",
+      gradient: "from-purple-500 to-pink-500"
+    }
+  ];
 
   return (
-    <div className="font-sans p-5 min-h-screen w-full bg-gray-100">
-      {/* Search Bar */}
-      <div className="mb-5">
-        <input
-          type="text"
-          placeholder="Enter Set Number"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          className="p-2.5 border border-gray-300 rounded mr-2 w-52 outline-none"
-        />
-        <button
-          onClick={handleGoClick}
-          className="px-4 py-2.5 rounded bg-blue-600 text-white hover:bg-blue-700"
-        >
-          Go
-        </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100">
+      {/* Navigation */}
+      <div className="p-4 flex justify-end">
+        <NavMenu />
       </div>
 
-      {/* Error */}
-      {setNotFound && (
-        <p className="text-red-600 mb-4">
-          Set &apos;{searchValue}&apos; not found.
+      {/* Hero Section */}
+      <header className="text-center py-8 md:py-16 px-6">
+        <h1 className="text-5xl md:text-7xl font-extrabold mb-6 bg-gradient-to-r from-yellow-400 via-red-500 to-blue-500 bg-clip-text text-transparent">
+          BrckTrckr
+        </h1>
+        <p className="text-xl md:text-2xl text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-8">
+          The free analytics tool for BrickLinkers to evaluate part values, track prices, and discover top-performing sets.
         </p>
-      )}
 
-      {/* Info Box */}
-      {matchedSet && !setNotFound && (
-        <div className="flex justify-between items-center border border-gray-200 rounded-lg p-4 bg-white shadow mb-5">
-          <div>
-            <p className="my-1">
-              <strong>Set Number:</strong> {matchedSet.SetNumber}
-            </p>
-            <p className="my-1">
-              <strong>Set Name:</strong> {matchedSet.SetName}
-            </p>
-            <p className="my-1">
-              <strong>Theme:</strong> {matchedSet.Theme}
-            </p>
+        {/* Quick Search Bar */}
+        <form onSubmit={handleQuickSearch} className="max-w-2xl mx-auto mb-6">
+          <div className="relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Enter set # (eg. 10375)..."
+              className="w-full px-6 py-4 pr-14 text-lg rounded-full border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all shadow-lg"
+            />
+            <button
+              type="submit"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full transition-colors"
+              aria-label="Search"
+            >
+              <Search className="w-5 h-5" />
+            </button>
           </div>
-          <div className="text-2xl font-bold text-right">
-            Total Value: ${totalValueSum.toFixed(2)}
+        </form>
+
+        {/* Primary CTA Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <Link
+            href="/set-look"
+            className="inline-block bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+          >
+            Start Set Searching →
+          </Link>
+          <Link
+            href="/set-rank"
+            className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200"
+          >
+            Explore Top Sets →
+          </Link>
+        </div>
+      </header>
+
+      {/* Feature Cards */}
+      <main className="max-w-7xl mx-auto px-6 py-12">
+        <h2 className="text-3xl md:text-4xl font-bold text-center mb-12 text-gray-800 dark:text-gray-100">
+          Everything You Need to Track LEGO Values
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+          {features.map((feature, index) => (
+            <Link
+              key={index}
+              href={feature.link}
+              className="group relative bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-200 dark:border-gray-700 hover:border-transparent hover:-translate-y-2"
+            >
+              {/* Gradient Border on Hover */}
+              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-r ${feature.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-300 -z-10 blur-sm`}></div>
+              
+              {/* Icon */}
+              <div className={`inline-flex p-4 rounded-xl bg-gradient-to-r ${feature.gradient} text-white mb-4 shadow-md`}>
+                {feature.icon}
+              </div>
+
+              {/* Content */}
+              <h3 className="text-2xl font-bold mb-3 text-gray-900 dark:text-gray-100">
+                {feature.title}
+              </h3>
+              <p className="text-gray-600 dark:text-gray-400 mb-6 leading-relaxed">
+                {feature.description}
+              </p>
+
+              {/* Link */}
+              <span className={`inline-flex items-center text-transparent bg-clip-text bg-gradient-to-r ${feature.gradient} font-semibold group-hover:gap-2 transition-all`}>
+                {feature.linkText}
+                <span className="ml-1 group-hover:translate-x-1 transition-transform">→</span>
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Additional Info Section */}
+        <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 md:p-12 text-center shadow-lg border border-yellow-200 dark:border-gray-600">
+          <h3 className="text-2xl md:text-3xl font-bold mb-4 text-gray-900 dark:text-gray-100">
+            Why BrckTrckr?
+          </h3>
+          <p className="text-lg text-gray-700 dark:text-gray-300 max-w-3xl mx-auto mb-6">
+            Built by BrickLinkers, for BrickLinkers. We combine BrickLink data with powerful analytics to help you make smarter buying and selling decisions. All features are completely free.
+          </p>
+          <div className="flex flex-wrap justify-center gap-6 text-sm md:text-base">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              <span className="text-gray-700 dark:text-gray-300">Free</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span className="text-gray-700 dark:text-gray-300">Real-Time Data</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
+              <span className="text-gray-700 dark:text-gray-300">Community-Driven</span>
+            </div>
           </div>
         </div>
-      )}
+      </main>
 
-      {/* Inventory Missing */}
-      {inventoryMissing && matchedSet && (
-        <p className="mt-4">No inventory found; queued for update.</p>
-      )}
-
-      {/* Table */}
-      {parsedInventory.length > 0 && (
-        <div className="w-full overflow-x-auto">
-          <table className="w-full table-auto border-collapse bg-white shadow">
-            <thead>
-              <tr>
-                {headers.map(({ key, label }) => (
-                  <th
-                    key={key}
-                    onClick={() => handleSort(key)}
-                    className="sticky top-0 bg-gray-800 text-white p-3 text-left cursor-pointer"
-                  >
-                    {label}
-                    {renderSortArrow(key)}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {sortedInventory.map((item, i) => (
-                <tr
-                  key={`${item.ItemNumber}-${item.ColourID}`}
-                  className={i % 2 === 0 ? "bg-gray-50" : ""}
-                >
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    <div className="flex items-center gap-2">
-                      <img
-                        loading="lazy"
-                        src={`https://img.bricklink.com/ItemImage/PN/${item.ColourID}/${item.ItemNumber}.png`}
-                        alt={item.ItemNumber}
-                        width={32}
-                        height={32}
-                        onError={(e) => e.currentTarget.remove()}
-                        className="align-middle"
-                      />
-                      <span>{item.ItemNumber}</span>
-                    </div>
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.Name}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.ColourName}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.Quantity}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.SoldAvgPrice}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.SoldTotalQuantity}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.SoldUnitQuantity}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.StockAvgPrice}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.StockTotalQuantity}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.StockUnitQuantity}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.Staple}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.Hotness}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.ValueMultiply}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.PieceTimeValue}
-                  </td>
-                  <td className="p-3 border-b border-gray-200 align-middle">
-                    {item.TotalValue}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {/* Footer */}
+      <footer className="py-8 text-center text-sm text-gray-500 dark:text-gray-400 border-t border-gray-200 dark:border-gray-700 mt-12">
+        <p>© {new Date().getFullYear()} BrckTrckr · Built for BrickLinkers Worldwide</p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          <label htmlFor="themePreference" className="text-gray-600 dark:text-gray-300">
+            Theme:
+          </label>
+          <select
+            id="themePreference"
+            value={themePreference}
+            onChange={(e) => setThemePreference(e.target.value as ThemePreference)}
+            className="px-3 py-1.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
+          >
+            <option value="system">System Default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+          <span className="mx-1 text-gray-400 dark:text-gray-500" aria-hidden="true">|</span>
+          <Link href="/contact" className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
+            Contact Us
+          </Link>
         </div>
-      )}
+      </footer>
     </div>
-  )
+  );
 }
