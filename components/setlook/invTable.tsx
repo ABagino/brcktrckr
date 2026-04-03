@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import Image from "next/image"
 import { supabase } from "@/utils/supabase/client"
 import { InventoryRecord, SortableKey, columnWidths, columnWidthsSmall, enrichInventory } from "./helper"
 
@@ -188,13 +187,12 @@ export default function InventoryTable({
                                   }`}
                               >
                                 <div className="flex items-center justify-center max-h-[35px] md:max-h-[50px] max-w-[50px] md:max-w-[70px] mx-auto">
-                                  <Image
+                                  <img
                                     src={imagePath(item)}
                                     alt={item.ItemNumber}
-                                    height={50}
-                                    width={0}
                                     className="h-[35px] md:h-[50px] w-auto object-contain"
-                                    unoptimized
+                                    loading="lazy"
+                                    decoding="async"
                                     onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
                                   />
                                 </div>
@@ -356,13 +354,12 @@ export default function InventoryTable({
                                                   }`}
                                               >
                                                 <div className="flex items-center justify-center max-h-[30px] md:max-h-[45px] max-w-[45px] md:max-w-[70px] mx-auto">
-                                                  <Image
+                                                  <img
                                                     src={`https://img.bricklink.com/ItemImage/PN/${part.ColourID}/${part.ItemNumber}.png`}
                                                     alt={part.ItemNumber}
-                                                    height={45}
-                                                    width={0}
                                                     className="h-[30px] md:h-[45px] w-auto object-contain"
-                                                    unoptimized
+                                                    loading="lazy"
+                                                    decoding="async"
                                                     onError={(e) =>
                                                       ((e.target as HTMLImageElement).style.display = "none")
                                                     }

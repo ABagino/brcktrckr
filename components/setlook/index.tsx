@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { useSetData } from "./useSetData"
 import InventoryTable from "./invTable"
@@ -18,6 +18,7 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
     totals,
     counts,
     isNotFound,
+    isLoading,
   } = useSetData(searchValue)
 
   const [sortConfigMinifig, setSortConfigMinifig] = useState<{
@@ -32,6 +33,31 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
     key: SortableKey | null
     direction: "asc" | "desc"
   }>({ key: null, direction: "asc" })
+
+  const loadingMessages = [
+    "Sorting bricks by colour...",
+    "Convincing Emmet to hurry up...",
+    "Counting 1x1 plates (this takes a while)...",
+    "Separating Duplo from the real stuff...",
+    "Bribing Benny for spaceship prices...",
+    "Checking couch cushions for lost pieces...",
+    "Negotiating with Lord Business...",
+    "Polishing the chrome minifig...",
+    "Stepping on a brick to invoke speed...",
+    "Consulting the Master Builders...",
+    "Fetching prices from the Ninjago realm...",
+    "Assembling data without the instructions...",
+  ]
+  const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
+
+  useEffect(() => {
+    if (!isLoading) return
+    setLoadingMsgIndex(Math.floor(Math.random() * loadingMessages.length))
+    const interval = setInterval(() => {
+      setLoadingMsgIndex((i) => (i + 1) % loadingMessages.length)
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [isLoading])
 
   // --- Header sets ---
   const basicHeaders: { key: SortableKey; label: string }[] = [
@@ -97,6 +123,33 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
 
   return (
     <div>
+      {/* ⏳ Loading Spinner */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4 text-gray-500 dark:text-gray-400">
+          <svg
+            className="animate-spin h-10 w-10 text-yellow-400"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            />
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+            />
+          </svg>
+          <p className="text-sm font-medium animate-pulse">{loadingMessages[loadingMsgIndex]}</p>
+        </div>
+      )}
+
       {/* ❌ Set Not Found */}
       {isNotFound && (
         <div className="text-red-600 dark:text-red-400 mb-6 space-y-3">
@@ -145,44 +198,12 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
               Total Value: ${totals.total.toFixed(2)}
             </div>
             <div className="flex items-center md:justify-end gap-2 text-xs md:text-sm flex-wrap">
-              <div className="relative inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
-                <span>Parts: {counts.parts}/{counts.partsPieces} (${totals.parts.toFixed(2)})</span>
-                <button
-                  className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-blue-600 dark:border-blue-400 hover:bg-blue-200 dark:hover:bg-blue-700 transition-colors"
-                  onMouseEnter={() => setShowPartsTooltip(true)}
-                  onMouseLeave={() => setShowPartsTooltip(false)}
-                  onClick={() => setShowPartsTooltip(!showPartsTooltip)}
-                >
-                  <span className="text-[10px] font-bold">?</span>
-                </button>
-                {showPartsTooltip && (
-                  <div className="absolute z-10 bottom-full mb-2 left-1/2 -translate-x-1/2 w-max max-w-[200px] p-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded shadow-lg whitespace-normal">
-                    Number of Lots / Number of Pieces<br />
-                    (Sum of the Part&apos;s &quot;Total Value&quot; column.)
-                  </div>
-                )}
+              <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 rounded-md font-medium">
+                {counts.partsPieces} parts / {counts.parts} lots (${totals.parts.toFixed(2)})
               </div>
-              <div className="relative inline-flex items-center gap-1 px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
-                <span>Minifigs: {counts.minifigs > 0 ? `${counts.minifigs}/${counts.minifigPieces}` : "-"}
-                  {counts.minifigs > 0 && ` ($${totals.minifigs.toFixed(2)})`}</span>
-                {counts.minifigs > 0 && (
-                  <>
-                    <button
-                      className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-yellow-600 dark:border-yellow-400 hover:bg-yellow-200 dark:hover:bg-yellow-700 transition-colors"
-                      onMouseEnter={() => setShowMinifigsTooltip(true)}
-                      onMouseLeave={() => setShowMinifigsTooltip(false)}
-                      onClick={() => setShowMinifigsTooltip(!showMinifigsTooltip)}
-                    >
-                      <span className="text-[10px] font-bold">?</span>
-                    </button>
-                    {showMinifigsTooltip && (
-                      <div className="absolute z-10 bottom-full mb-2 right-0 w-max max-w-[220px] p-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs rounded shadow-lg whitespace-normal">
-                        Number of Unique Minifigures / Total Quantity<br />
-                        (Sum of higher price per minifigure, between the minifigure&apos;s individual cost vs the minifigure&apos;s parts total cost.)
-                      </div>
-                    )}
-                  </>
-                )}
+              <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-md font-medium">
+                Minifigs: {counts.minifigs}
+                  {counts.minifigs > 0 && ` (${counts.minifigPieces} parts) ($${totals.minifigs.toFixed(2)})`}
               </div>
             </div>
           </div>

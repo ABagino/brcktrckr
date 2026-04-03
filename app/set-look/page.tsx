@@ -1,9 +1,10 @@
 "use client"
 
 import { useState, useCallback, useRef, useEffect, Suspense } from "react"
+import Link from "next/link"
+import { Home } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import SetLook from "@/components/setlook"
-import NavMenu from "@/components/NavMenu"
 
 // Default suffix for set numbers
 const DEFAULT_SET_SUFFIX = "-1"
@@ -97,7 +98,7 @@ function SetLookContent() {
   }, [])
 
   return (
-    <div className="font-sans p-4 sm:p-6 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+    <div className="font-sans p-4 sm:p-6 min-h-screen bg-[rgb(251,249,247)] bg-[radial-gradient(circle_at_20%_0%,rgba(242,142,46,0.06)_0%,rgba(242,142,46,0)_40%),radial-gradient(circle_at_80%_10%,rgba(30,30,30,0.03)_0%,rgba(30,30,30,0)_45%)] dark:bg-gray-900 dark:bg-[radial-gradient(circle_at_15%_0%,rgba(242,142,46,0.12)_0%,rgba(242,142,46,0)_42%),radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_45%)] text-gray-900 dark:text-gray-100">
       {/* 🔍 Search Bar + View Mode + Menu */}
       <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Left: Search field */}
@@ -182,7 +183,7 @@ function SetLookContent() {
           )}
         </div>
 
-        {/* Right: View Mode + Hamburger Menu */}
+        {/* Right: View Mode + Home Button */}
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
           <div className="inline-flex rounded-md border border-gray-300 dark:border-gray-600 overflow-hidden">
             <button
@@ -210,7 +211,13 @@ function SetLookContent() {
               Advanced
             </button>
           </div>
-          <NavMenu />
+          <Link
+            href="/"
+            aria-label="Go to Home"
+            className="p-2 rounded-md bg-blue-600 text-white hover:bg-blue-700 focus:outline-none"
+          >
+            <Home className="w-5 h-5" />
+          </Link>
         </div>
       </div>
 
@@ -261,7 +268,7 @@ function SetLookContent() {
 export default function Page() {
   return (
     <Suspense fallback={
-      <div className="font-sans p-4 sm:p-6 min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+      <div className="font-sans p-4 sm:p-6 min-h-screen bg-[rgb(251,249,247)] bg-[radial-gradient(circle_at_20%_0%,rgba(242,142,46,0.06)_0%,rgba(242,142,46,0)_40%),radial-gradient(circle_at_80%_10%,rgba(30,30,30,0.03)_0%,rgba(30,30,30,0)_45%)] dark:bg-gray-900 dark:bg-[radial-gradient(circle_at_15%_0%,rgba(242,142,46,0.12)_0%,rgba(242,142,46,0)_42%),radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_45%)] text-gray-900 dark:text-gray-100">
         <div className="text-center py-16">
           <div className="animate-pulse">
             <div className="h-12 bg-gray-200 dark:bg-gray-800 rounded-lg mb-5 max-w-2xl mx-auto"></div>

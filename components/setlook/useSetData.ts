@@ -8,6 +8,7 @@ export function useSetData(searchValue: string) {
   const [matchedSet, setMatchedSet] = useState<SetRecord | null>(null)
   const [parsedInventory, setParsedInventory] = useState<InventoryRecord[]>([])
   const [isNotFound, setIsNotFound] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
   const [totals, setTotals] = useState({ total: 0, parts: 0, minifigs: 0 })
   const [counts, setCounts] = useState({ parts: 0, minifigs: 0, partsPieces: 0, minifigPieces: 0 })
 
@@ -18,6 +19,7 @@ export function useSetData(searchValue: string) {
     const loadData = async () => {
       // 🧹 Reset state before loading
       setIsNotFound(false)
+      setIsLoading(true)
       setMatchedSet(null)
       setParsedInventory([])
       setTotals({ total: 0, parts: 0, minifigs: 0 })
@@ -31,6 +33,7 @@ export function useSetData(searchValue: string) {
         if (cancelled) return
         if (setError || !setData?.length) {
           setIsNotFound(true)
+          setIsLoading(false)
           return
         }
 
@@ -44,6 +47,7 @@ export function useSetData(searchValue: string) {
         if (cancelled) return
         if (invError || !invData?.length) {
           setIsNotFound(true)
+          setIsLoading(false)
           return
         }
 
@@ -153,6 +157,7 @@ export function useSetData(searchValue: string) {
           partsPieces: partsPiecesSum,
           minifigPieces: minifigPiecesSum,
         })
+        if (!cancelled) setIsLoading(false)
       } catch (err: unknown) {
         // ✅ Properly typed error handling
         if (err instanceof Error) {
@@ -160,7 +165,10 @@ export function useSetData(searchValue: string) {
         } else {
           console.error("❌ Unknown error loading set:", err)
         }
-        if (!cancelled) setIsNotFound(true)
+        if (!cancelled) {
+          setIsNotFound(true)
+          setIsLoading(false)
+        }
       }
     }
 
@@ -170,5 +178,5 @@ export function useSetData(searchValue: string) {
     }
   }, [searchValue])
 
-  return { matchedSet, parsedInventory, totals, counts, isNotFound }
+  return { matchedSet, parsedInventory, totals, counts, isNotFound, isLoading }
 }
