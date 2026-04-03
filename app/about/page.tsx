@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Script from "next/script";
 import { Manrope, Space_Grotesk } from "next/font/google";
+import ThemeFooter from "@/components/themeFooter";
 
 const headingFont = Space_Grotesk({
   subsets: ["latin"],
@@ -123,7 +124,7 @@ export default function AboutPage() {
             </h1>
             <div className="space-y-4 text-neutral-700 dark:text-neutral-300">
               <p>
-                Hey! I'm Anton. I used to be a BrickLink seller for a couple of years during high school and uni, but eventually ran out of time to keep doing it properly.
+                Hey! I&apos;m Anton. I used to be a BrickLink seller for a couple of years during high school and uni, but eventually ran out of time to keep doing it properly.
               </p>
               <p>
                 In my day job, I spend most of my time crunching numbers. That gave me the inspiration to build BrckTrckr so other BrickLinkers can use better data to make smarter decisions, and something relaxing and interesting to do in my downtime.
@@ -156,6 +157,8 @@ export default function AboutPage() {
           </article>
         </section>
       </div>
+
+      <ThemeFooter />
     </div>
   );
 }

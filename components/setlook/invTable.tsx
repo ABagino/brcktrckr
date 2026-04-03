@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import { supabase } from "@/utils/supabase/client"
 import { InventoryRecord, SortableKey, columnWidths, columnWidthsSmall, enrichInventory } from "./helper"
 
@@ -187,13 +188,18 @@ export default function InventoryTable({
                                   }`}
                               >
                                 <div className="flex items-center justify-center max-h-[35px] md:max-h-[50px] max-w-[50px] md:max-w-[70px] mx-auto">
-                                  <img
+                                  <Image
                                     src={imagePath(item)}
                                     alt={item.ItemNumber}
+                                    width={70}
+                                    height={50}
                                     className="h-[35px] md:h-[50px] w-auto object-contain"
                                     loading="lazy"
                                     decoding="async"
-                                    onError={(e) => ((e.target as HTMLImageElement).style.display = "none")}
+                                    unoptimized
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = "none"
+                                    }}
                                   />
                                 </div>
                                 {!isSmallScreen && (
@@ -354,15 +360,18 @@ export default function InventoryTable({
                                                   }`}
                                               >
                                                 <div className="flex items-center justify-center max-h-[30px] md:max-h-[45px] max-w-[45px] md:max-w-[70px] mx-auto">
-                                                  <img
+                                                  <Image
                                                     src={`https://img.bricklink.com/ItemImage/PN/${part.ColourID}/${part.ItemNumber}.png`}
                                                     alt={part.ItemNumber}
+                                                    width={70}
+                                                    height={45}
                                                     className="h-[30px] md:h-[45px] w-auto object-contain"
                                                     loading="lazy"
                                                     decoding="async"
-                                                    onError={(e) =>
-                                                      ((e.target as HTMLImageElement).style.display = "none")
-                                                    }
+                                                    unoptimized
+                                                    onError={(e) => {
+                                                      e.currentTarget.style.display = "none"
+                                                    }}
                                                   />
                                                 </div>
                                                 {!isSmallScreen && (

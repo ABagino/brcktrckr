@@ -11,6 +11,21 @@ interface SetLookProps {
   viewMode: "basic" | "advanced"
 }
 
+const LOADING_MESSAGES = [
+  "Sorting bricks by colour...",
+  "Convincing Emmet to hurry up...",
+  "Counting 1x1 plates (this takes a while)...",
+  "Separating Duplo from the real stuff...",
+  "Bribing Benny for spaceship prices...",
+  "Checking couch cushions for lost pieces...",
+  "Negotiating with Lord Business...",
+  "Polishing the chrome minifig...",
+  "Stepping on a brick to invoke speed...",
+  "Consulting the Master Builders...",
+  "Fetching prices from the Ninjago realm...",
+  "Assembling data without the instructions...",
+]
+
 export default function SetLook({ searchValue, viewMode }: SetLookProps) {
   const {
     matchedSet,
@@ -26,35 +41,17 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
     direction: "asc" | "desc"
   }>({ key: null, direction: "asc" })
 
-  const [showPartsTooltip, setShowPartsTooltip] = useState(false)
-  const [showMinifigsTooltip, setShowMinifigsTooltip] = useState(false)
-
   const [sortConfigParts, setSortConfigParts] = useState<{
     key: SortableKey | null
     direction: "asc" | "desc"
   }>({ key: null, direction: "asc" })
-
-  const loadingMessages = [
-    "Sorting bricks by colour...",
-    "Convincing Emmet to hurry up...",
-    "Counting 1x1 plates (this takes a while)...",
-    "Separating Duplo from the real stuff...",
-    "Bribing Benny for spaceship prices...",
-    "Checking couch cushions for lost pieces...",
-    "Negotiating with Lord Business...",
-    "Polishing the chrome minifig...",
-    "Stepping on a brick to invoke speed...",
-    "Consulting the Master Builders...",
-    "Fetching prices from the Ninjago realm...",
-    "Assembling data without the instructions...",
-  ]
   const [loadingMsgIndex, setLoadingMsgIndex] = useState(0)
 
   useEffect(() => {
     if (!isLoading) return
-    setLoadingMsgIndex(Math.floor(Math.random() * loadingMessages.length))
+    setLoadingMsgIndex(Math.floor(Math.random() * LOADING_MESSAGES.length))
     const interval = setInterval(() => {
-      setLoadingMsgIndex((i) => (i + 1) % loadingMessages.length)
+      setLoadingMsgIndex((i) => (i + 1) % LOADING_MESSAGES.length)
     }, 2000)
     return () => clearInterval(interval)
   }, [isLoading])
@@ -146,7 +143,7 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
               d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
             />
           </svg>
-          <p className="text-sm font-medium animate-pulse">{loadingMessages[loadingMsgIndex]}</p>
+          <p className="text-sm font-medium animate-pulse">{LOADING_MESSAGES[loadingMsgIndex]}</p>
         </div>
       )}
 
