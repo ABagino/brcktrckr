@@ -173,6 +173,9 @@ export default function ContactPage() {
             <Link href="/set-rank" className={pathname === "/set-rank" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
               Top Sets
             </Link>
+            <Link href="/about" className={pathname === "/about" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              About + FAQ
+            </Link>
             <Link href="/contact" className={pathname === "/contact" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
               Contact
             </Link>
