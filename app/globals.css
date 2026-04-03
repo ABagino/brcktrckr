@@ -28,3 +28,16 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Only show a typing caret inside actual editable fields. */
+html,
+body,
+*:not(input):not(textarea):not([contenteditable="true"]) {
+  caret-color: transparent;
+}
+
+input,
+textarea,
+[contenteditable="true"] {
+  caret-color: auto;
+}
+

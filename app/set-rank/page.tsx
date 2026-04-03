@@ -2,13 +2,24 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import NavMenu from "@/components/NavMenu"
+import { usePathname } from "next/navigation"
+import { Manrope, Space_Grotesk } from "next/font/google"
 import {
   getSetValueRows,
   getSetValueThemes,
   RankedSetValueRow,
   SetValueMode,
 } from "@/utils/supabase/setValueMv"
+
+const headingFont = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+})
+
+const bodyFont = Manrope({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+})
 
 const currentYear = new Date().getFullYear()
 const MIN_LEGO_YEAR = 2024
@@ -58,6 +69,7 @@ function numberFormat(value: number): string {
 }
 
 export default function SetValuePage() {
+  const pathname = usePathname()
   const [mode, setMode] = useState<SetValueMode>("most_pieces")
   const [sortColumn, setSortColumn] = useState<SortColumn>("piece_qty")
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc")
@@ -71,6 +83,32 @@ export default function SetValuePage() {
   const [rows, setRows] = useState<RankedSetValueRow[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  type ThemePreference = "light" | "dark" | "system"
+  const THEME_KEY = "theme-preference"
+  const [themePreference, setThemePreference] = useState<ThemePreference>("system")
+  const [themeLoaded, setThemeLoaded] = useState(false)
+
+  useEffect(() => {
+    const saved = localStorage.getItem(THEME_KEY)
+    if (saved === "light" || saved === "dark" || saved === "system") {
+      setThemePreference(saved)
+    }
+    setThemeLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (!themeLoaded) return
+    const mq = window.matchMedia("(prefers-color-scheme: dark)")
+    const apply = () => {
+      const dark = themePreference === "dark" || (themePreference === "system" && mq.matches)
+      document.documentElement.classList.toggle("dark", dark)
+    }
+    apply()
+    localStorage.setItem(THEME_KEY, themePreference)
+    mq.addEventListener("change", apply)
+    return () => mq.removeEventListener("change", apply)
+  }, [themePreference, themeLoaded])
 
   const parsedStartYear = useMemo(() => {
     const asNumber = Number(startYearInput)
@@ -250,96 +288,132 @@ export default function SetValuePage() {
   }, [mode, parsedStartYear, parsedEndYear, selectedThemes])
 
   return (
-    <div className="min-h-screen bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 p-4 sm:p-6">
-      <div className="flex justify-end mb-4">
-        <NavMenu />
-      </div>
+    <div className={`${bodyFont.className} min-h-screen text-[#1e1e1e] dark:text-gray-100 bg-[rgb(251,249,247)] bg-[radial-gradient(circle_at_20%_0%,rgba(242,142,46,0.06)_0%,rgba(242,142,46,0)_40%),radial-gradient(circle_at_80%_10%,rgba(30,30,30,0.03)_0%,rgba(30,30,30,0)_45%)] dark:bg-gray-900 dark:bg-[radial-gradient(circle_at_15%_0%,rgba(242,142,46,0.12)_0%,rgba(242,142,46,0)_42%),radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_45%)]`}>
+      <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
+        <header className="mb-12 flex items-center justify-between">
+          <Link href="/" className={`${headingFont.className} text-2xl font-bold tracking-tight`}>
+            BrckTrckr
+          </Link>
+          <nav className="hidden gap-7 text-sm font-medium text-neutral-600 dark:text-neutral-400 md:flex">
+            <Link href="/" className={pathname === "/" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              Home
+            </Link>
+            <Link href="/set-look" className={pathname === "/set-look" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              Set Search
+            </Link>
+            <Link href="/set-rank" className={pathname === "/set-rank" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              Top Sets
+            </Link>
+            <Link href="/about" className={pathname === "/about" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              About + FAQ
+            </Link>
+            <Link href="/contact" className={pathname === "/contact" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
+              Contact
+            </Link>
+          </nav>
+          <Link
+            href="/set-look"
+            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
+          >
+            SEARCH SETS
+          </Link>
+        </header>
 
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Set Rank</h1>
-        <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400 mb-6">
-          Pick a year range, choose your favorite themes, and discover which sets come out on top.
-        </p>
+        <div className="mb-8">
+          <h1 className={`${headingFont.className} text-4xl font-bold mb-2`}>Set Rank</h1>
+          <p className="text-neutral-600 dark:text-neutral-400">
+            Pick a year range, choose your favourite themes, and discover which sets come out on top.
+          </p>
+        </div>
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 sm:p-5 mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Filters */}
+        <div className="rounded-2xl border border-[#efebe7] dark:border-gray-700 bg-white dark:bg-gray-800 p-5 shadow-[0_10px_30px_rgba(20,20,20,0.05)] mb-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label htmlFor="mode" className="block text-sm font-medium mb-1">
-              Ranking Style:
+            <label htmlFor="mode" className="mb-1.5 block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+              Ranking Style
             </label>
-            <select
-              id="mode"
-              value={mode}
-              onChange={(event) => setMode(event.target.value as SetValueMode)}
-              className="w-full p-2.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
-            >
-              <option value="most_pieces">Rank by piece count</option>
-              <option value="highest_part_value">Rank by part value</option>
-              <option value="highest_minifig_value">Rank by minifigure value</option>
-              <option value="highest_total_value">Rank by total value</option>
-              <option value="multiplicative_effect">Rank by multiplicative effect</option>
-            </select>
+            <div className="rounded-xl border border-neutral-200 dark:border-gray-600 overflow-hidden">
+              <select
+                id="mode"
+                value={mode}
+                onChange={(event) => setMode(event.target.value as SetValueMode)}
+                className="w-full bg-transparent px-3 py-2.5 text-sm font-medium outline-none dark:text-gray-100"
+              >
+                <option value="most_pieces">Rank by piece count</option>
+                <option value="highest_part_value">Rank by part value</option>
+                <option value="highest_minifig_value">Rank by minifigure value</option>
+                <option value="highest_total_value">Rank by total value</option>
+                <option value="multiplicative_effect">Rank by multiplicative effect</option>
+              </select>
+            </div>
           </div>
 
           <div>
-            <label htmlFor="startYear" className="block text-sm font-medium mb-1">
-              Start Year:
+            <label htmlFor="startYear" className="mb-1.5 block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+              Start Year
             </label>
-            <input
-              id="startYear"
-              type="number"
-              min={MIN_LEGO_YEAR}
-              max={currentYear}
-              value={startYearInput}
-              onChange={(event) => setStartYearInput(event.target.value)}
-              className="w-full p-2.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
-              placeholder={`e.g. ${MIN_LEGO_YEAR}`}
-            />
+            <div className="rounded-xl border border-neutral-200 dark:border-gray-600 px-3 py-2.5">
+              <input
+                id="startYear"
+                type="number"
+                min={MIN_LEGO_YEAR}
+                max={currentYear}
+                value={startYearInput}
+                onChange={(event) => setStartYearInput(event.target.value)}
+                className="w-full bg-transparent text-sm font-medium outline-none dark:text-gray-100 dark:placeholder-gray-500"
+                placeholder={`e.g. ${MIN_LEGO_YEAR}`}
+              />
+            </div>
           </div>
 
           <div>
-            <label htmlFor="endYear" className="block text-sm font-medium mb-1">
-              End Year:
+            <label htmlFor="endYear" className="mb-1.5 block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+              End Year
             </label>
-            <input
-              id="endYear"
-              type="number"
-              min={MIN_LEGO_YEAR}
-              max={currentYear}
-              value={endYearInput}
-              onChange={(event) => setEndYearInput(event.target.value)}
-              className="w-full p-2.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
-              placeholder={`e.g. ${currentYear}`}
-            />
+            <div className="rounded-xl border border-neutral-200 dark:border-gray-600 px-3 py-2.5">
+              <input
+                id="endYear"
+                type="number"
+                min={MIN_LEGO_YEAR}
+                max={currentYear}
+                value={endYearInput}
+                onChange={(event) => setEndYearInput(event.target.value)}
+                className="w-full bg-transparent text-sm font-medium outline-none dark:text-gray-100 dark:placeholder-gray-500"
+                placeholder={`e.g. ${currentYear}`}
+              />
+            </div>
           </div>
 
           <div className="relative">
-            <label htmlFor="themeSearch" className="block text-sm font-medium mb-1">
-              Themes: <span className="italic">(multi-select)</span>
+            <label htmlFor="themeSearch" className="mb-1.5 block text-xs font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wide">
+              Themes <span className="normal-case font-normal">(multi-select)</span>
             </label>
-            <input
-              id="themeSearch"
-              type="text"
-              value={themeSearch}
-              onChange={(event) => {
-                setThemeSearch(event.target.value)
-                setShowThemeOptions(true)
-              }}
-              onFocus={() => setShowThemeOptions(true)}
-              onBlur={() => {
-                window.setTimeout(() => setShowThemeOptions(false), 120)
-              }}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && filteredThemeOptions.length > 0) {
-                  event.preventDefault()
-                  addTheme(filteredThemeOptions[0])
-                }
-              }}
-              className="w-full p-2.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900"
-              placeholder="Type to find themes"
-            />
+            <div className="rounded-xl border border-neutral-200 dark:border-gray-600 px-3 py-2.5">
+              <input
+                id="themeSearch"
+                type="text"
+                value={themeSearch}
+                onChange={(event) => {
+                  setThemeSearch(event.target.value)
+                  setShowThemeOptions(true)
+                }}
+                onFocus={() => setShowThemeOptions(true)}
+                onBlur={() => {
+                  window.setTimeout(() => setShowThemeOptions(false), 120)
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && filteredThemeOptions.length > 0) {
+                    event.preventDefault()
+                    addTheme(filteredThemeOptions[0])
+                  }
+                }}
+                className="w-full bg-transparent text-sm font-medium outline-none dark:text-gray-100 dark:placeholder-gray-500"
+                placeholder="Type to find themes"
+              />
+            </div>
 
             {showThemeOptions && filteredThemeOptions.length > 0 && (
-              <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg">
+              <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto rounded-xl border border-[#efebe7] dark:border-gray-700 bg-white dark:bg-gray-800 shadow-[0_10px_30px_rgba(20,20,20,0.1)]">
                 {filteredThemeOptions.map((theme) => (
                   <button
                     key={theme}
@@ -348,7 +422,7 @@ export default function SetValuePage() {
                       event.preventDefault()
                       addTheme(theme)
                     }}
-                    className="w-full text-left px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-800"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-neutral-50 dark:hover:bg-gray-700"
                   >
                     {theme}
                   </button>
@@ -365,7 +439,7 @@ export default function SetValuePage() {
                 key={theme}
                 type="button"
                 onClick={() => removeTheme(theme)}
-                className="px-3 py-1.5 rounded-full text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="px-3 py-1.5 rounded-full text-sm border border-neutral-200 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-neutral-50 dark:hover:bg-gray-700"
               >
                 {theme} ×
               </button>
@@ -374,68 +448,62 @@ export default function SetValuePage() {
         )}
 
         {mode === "multiplicative_effect" && (
-          <div className="mb-4 text-sm text-gray-700 dark:text-gray-300">
+          <div className="mb-4 text-sm text-neutral-600 dark:text-neutral-400">
             Multiplicative effect = <strong>total_value / raw_part_value</strong>
           </div>
         )}
 
         {error && (
-          <div className="mb-4 p-3 rounded border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-200">
+          <div className="mb-4 p-3 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 text-sm">
             {error}
           </div>
         )}
 
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
-          <div className="p-3 sm:p-4 border-b border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400">
-            {loading ? "Loading results..." : `Showing ${pageStart}-${pageEnd} of ${sortedRows.length} set(s)`}
+        {/* Table */}
+        <div className="rounded-2xl border border-[#efebe7] dark:border-gray-700 bg-white dark:bg-gray-800 shadow-[0_10px_30px_rgba(20,20,20,0.05)] overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#efebe7] dark:border-gray-700 text-sm text-neutral-500 dark:text-neutral-400">
+            {loading ? "Loading results..." : `Showing ${pageStart}–${pageEnd} of ${sortedRows.length} set(s)`}
           </div>
 
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-900/40">
+              <thead className="bg-neutral-50 dark:bg-gray-900/40">
                 <tr>
-                  <th className="text-left p-3">
+                  <th className="text-left px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("set_num")} className="font-semibold hover:underline">
-                      Set # | Name
-                      {sortLabel("set_num")}
+                      Set # | Name{sortLabel("set_num")}
                     </button>
                   </th>
-                  <th className="text-left p-3">Theme</th>
-                  <th className="text-right p-3">Year</th>
-                  <th className="text-right p-3">
+                  <th className="text-left px-4 py-3 font-semibold">Theme</th>
+                  <th className="text-right px-4 py-3 font-semibold">Year</th>
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("piece_qty")} className="font-semibold hover:underline">
-                      Pieces
-                      {sortLabel("piece_qty")}
+                      Pieces{sortLabel("piece_qty")}
                     </button>
                   </th>
-                  <th className="text-right p-3">
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("part_value_indexed")} className="font-semibold hover:underline">
-                      Part Value
-                      {sortLabel("part_value_indexed")}
+                      Part Value{sortLabel("part_value_indexed")}
                     </button>
                   </th>
-                  <th className="text-right p-3">
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("minifig_value_indexed")} className="font-semibold hover:underline">
-                      Minifig Value
-                      {sortLabel("minifig_value_indexed")}
+                      Minifig Value{sortLabel("minifig_value_indexed")}
                     </button>
                   </th>
-                  <th className="text-right p-3">
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("total_value")} className="font-semibold hover:underline">
-                      Total Value
-                      {sortLabel("total_value")}
+                      Total Value{sortLabel("total_value")}
                     </button>
                   </th>
-                  <th className="text-right p-3">
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("value_per_piece")} className="font-semibold hover:underline">
-                      Value / Piece
-                      {sortLabel("value_per_piece")}
+                      Value / Piece{sortLabel("value_per_piece")}
                     </button>
                   </th>
-                  <th className="text-right p-3">
+                  <th className="text-right px-4 py-3">
                     <button type="button" onClick={() => handleSortClick("multiplicative_effect")} className="font-semibold hover:underline">
-                      Multiplier
-                      {sortLabel("multiplicative_effect")}
+                      Multiplier{sortLabel("multiplicative_effect")}
                     </button>
                   </th>
                 </tr>
@@ -443,31 +511,31 @@ export default function SetValuePage() {
               <tbody>
                 {!loading && sortedRows.length === 0 && !error && (
                   <tr>
-                    <td colSpan={10} className="p-6 text-center text-gray-500 dark:text-gray-400">
+                    <td colSpan={10} className="px-4 py-8 text-center text-neutral-500 dark:text-neutral-400">
                       No sets found for this filter.
                     </td>
                   </tr>
                 )}
 
                 {paginatedRows.map((row) => (
-                  <tr key={row.set_num} className="border-t border-gray-200 dark:border-gray-700">
-                    <td className="p-3">
+                  <tr key={row.set_num} className="border-t border-[#efebe7] dark:border-gray-700 hover:bg-neutral-50 dark:hover:bg-gray-700/30 transition-colors">
+                    <td className="px-4 py-3">
                       <Link
                         href={`/set-look?q=${encodeURIComponent(row.set_num)}`}
-                        className="font-medium text-blue-600 hover:underline dark:text-blue-400"
+                        className="font-semibold text-[rgb(242,142,46)] hover:underline"
                       >
                         {row.set_num}
                       </Link>
-                      <div className="text-gray-600 dark:text-gray-400">{row.set_name}</div>
+                      <div className="text-neutral-500 dark:text-neutral-400 text-xs mt-0.5">{row.set_name}</div>
                     </td>
-                    <td className="p-3">{row.theme_name}</td>
-                    <td className="p-3 text-right">{row.year}</td>
-                    <td className="p-3 text-right">{numberFormat(row.piece_qty)}</td>
-                    <td className="p-3 text-right">{currency(row.part_value_indexed)}</td>
-                    <td className="p-3 text-right">{currency(Math.max(row.minifig_value_indexed, row.minifig_part_value_indexed))}</td>
-                    <td className="p-3 text-right">{currency(row.total_value)}</td>
-                    <td className="p-3 text-right">{currency(row.value_per_piece)}</td>
-                    <td className="p-3 text-right">{row.multiplicative_effect.toFixed(2)}x</td>
+                    <td className="px-4 py-3 text-neutral-700 dark:text-neutral-300">{row.theme_name}</td>
+                    <td className="px-4 py-3 text-right">{row.year}</td>
+                    <td className="px-4 py-3 text-right">{numberFormat(row.piece_qty)}</td>
+                    <td className="px-4 py-3 text-right">{currency(row.part_value_indexed)}</td>
+                    <td className="px-4 py-3 text-right">{currency(Math.max(row.minifig_value_indexed, row.minifig_part_value_indexed))}</td>
+                    <td className="px-4 py-3 text-right font-medium">{currency(row.total_value)}</td>
+                    <td className="px-4 py-3 text-right">{currency(row.value_per_piece)}</td>
+                    <td className="px-4 py-3 text-right">{row.multiplicative_effect.toFixed(2)}x</td>
                   </tr>
                 ))}
               </tbody>
@@ -475,32 +543,32 @@ export default function SetValuePage() {
           </div>
 
           {!loading && sortedRows.length > PAGE_SIZE && (
-            <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between gap-3">
+            <div className="px-4 py-3 border-t border-[#efebe7] dark:border-gray-700 flex items-center justify-between gap-3">
               <button
                 type="button"
                 onClick={() => setCurrentPage((previous) => Math.max(1, previous - 1))}
                 disabled={currentPage === 1}
-                className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-gray-600 text-sm font-medium disabled:opacity-40"
               >
                 Previous
               </button>
-              <div className="flex items-center gap-1 sm:gap-2">
+              <div className="flex items-center gap-1">
                 {visiblePageNumbers.map((pageNumber, index) => {
                   const previousPage = visiblePageNumbers[index - 1]
                   const shouldShowGap = previousPage !== undefined && pageNumber - previousPage > 1
 
                   return (
-                    <div key={pageNumber} className="flex items-center gap-1 sm:gap-2">
+                    <div key={pageNumber} className="flex items-center gap-1">
                       {shouldShowGap && (
-                        <span className="text-sm text-gray-500 dark:text-gray-400 px-1">...</span>
+                        <span className="text-sm text-neutral-400 px-1">…</span>
                       )}
                       <button
                         type="button"
                         onClick={() => setCurrentPage(pageNumber)}
-                        className={`min-w-9 px-2 py-2 rounded border text-sm ${
+                        className={`min-w-8 px-2 py-1.5 rounded-xl border text-sm font-medium ${
                           pageNumber === currentPage
-                            ? "border-blue-600 bg-blue-600 text-white"
-                            : "border-gray-300 dark:border-gray-600"
+                            ? "border-black bg-black text-white"
+                            : "border-neutral-200 dark:border-gray-600 hover:bg-neutral-50 dark:hover:bg-gray-700"
                         }`}
                       >
                         {pageNumber}
@@ -513,7 +581,7 @@ export default function SetValuePage() {
                 type="button"
                 onClick={() => setCurrentPage((previous) => Math.min(totalPages, previous + 1))}
                 disabled={currentPage === totalPages}
-                className="px-3 py-2 rounded border border-gray-300 dark:border-gray-600 disabled:opacity-50"
+                className="px-3 py-1.5 rounded-xl border border-neutral-200 dark:border-gray-600 text-sm font-medium disabled:opacity-40"
               >
                 Next
               </button>
@@ -521,6 +589,24 @@ export default function SetValuePage() {
           )}
         </div>
       </div>
+
+      <footer className="border-t border-[#ece7e2] dark:border-gray-700 py-6 text-center text-sm text-neutral-500 dark:text-neutral-400">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <p>© {new Date().getFullYear()} BrckTrckr · Built for BrickLinkers Worldwide</p>
+          <span>|</span>
+          <label htmlFor="theme-select" className="text-neutral-600 dark:text-neutral-300">Theme:</label>
+          <select
+            id="theme-select"
+            value={themePreference}
+            onChange={(e) => setThemePreference(e.target.value as ThemePreference)}
+            className="rounded border border-neutral-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-1.5 text-neutral-700 dark:text-gray-200"
+          >
+            <option value="system">System Default</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
+      </footer>
     </div>
   )
 }
