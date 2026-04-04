@@ -17,18 +17,29 @@ function SetLookContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [hasSetInitialView, setHasSetInitialView] = useState(false)
+  const [showSmallScreenNotice, setShowSmallScreenNotice] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Set initial view mode based on screen size (only once)
   useEffect(() => {
     if (!hasSetInitialView) {
       const isSmall = window.innerWidth < 768
+      const isVerySmall = window.innerWidth < 480
       if (isSmall) {
         setViewMode("basic")
+      }
+      // Show small screen notice for very small screens (if not previously dismissed)
+      if (isVerySmall && !sessionStorage.getItem("smallScreenNoticeDismissed")) {
+        setShowSmallScreenNotice(true)
       }
       setHasSetInitialView(true)
     }
   }, [hasSetInitialView])
+
+  const dismissSmallScreenNotice = useCallback(() => {
+    setShowSmallScreenNotice(false)
+    sessionStorage.setItem("smallScreenNoticeDismissed", "true")
+  }, [])
 
   // Populate input from URL query parameter on mount
   useEffect(() => {
@@ -99,7 +110,30 @@ function SetLookContent() {
 
   return (
     <div className="font-sans p-4 sm:p-6 min-h-screen bg-[rgb(251,249,247)] bg-[radial-gradient(circle_at_20%_0%,rgba(242,142,46,0.06)_0%,rgba(242,142,46,0)_40%),radial-gradient(circle_at_80%_10%,rgba(30,30,30,0.03)_0%,rgba(30,30,30,0)_45%)] dark:bg-gray-900 dark:bg-[radial-gradient(circle_at_15%_0%,rgba(242,142,46,0.12)_0%,rgba(242,142,46,0)_42%),radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_45%)] text-gray-900 dark:text-gray-100">
-      {/* 🔍 Search Bar + View Mode + Menu */}
+      {/* Small Screen Notice */}
+      {showSmallScreenNotice && (
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-amber-800 dark:text-amber-200 text-sm">
+          <div className="flex items-start gap-2">
+            <svg className="w-5 h-5 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+            <p className="flex-1">
+              We&apos;re detecting your screen to be small, so you may need to scroll to see all the info. Feel free to try it out on a bigger screen for the optimal viewing experience.
+            </p>
+            <button
+              onClick={dismissSmallScreenNotice}
+              aria-label="Dismiss notice"
+              className="flex-shrink-0 text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-200"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🔍 Search Bar + View Mode + Home */}
       <div className="mb-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         {/* Left: Search field */}
         <div className="flex items-center gap-2 w-full sm:w-auto">

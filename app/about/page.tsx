@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import Script from "next/script";
 import { Manrope, Space_Grotesk } from "next/font/google";
 import ThemeFooter from "@/components/themeFooter";
+import Header from "@/components/Header";
 
 const headingFont = Space_Grotesk({
   subsets: ["latin"],
@@ -88,34 +88,7 @@ export default function AboutPage() {
       />
 
       <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
-        <header className="mb-16 flex items-center justify-between">
-          <Link href="/" className={`${headingFont.className} text-2xl font-bold tracking-tight`}>
-            BrckTrckr
-          </Link>
-          <nav className="hidden gap-7 text-sm font-medium text-neutral-600 dark:text-neutral-400 md:flex">
-            <Link href="/" className="transition-colors hover:text-neutral-900 dark:hover:text-white">
-              Home
-            </Link>
-            <Link href="/set-look" className="transition-colors hover:text-neutral-900 dark:hover:text-white">
-              Set Search
-            </Link>
-            <Link href="/set-rank" className="transition-colors hover:text-neutral-900 dark:hover:text-white">
-              Top Sets
-            </Link>
-            <Link href="/about" className="font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white">
-              About + FAQ
-            </Link>
-            <Link href="/contact" className="transition-colors hover:text-neutral-900 dark:hover:text-white">
-              Contact
-            </Link>
-          </nav>
-          <Link
-            href="/set-look"
-            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          >
-            SEARCH SETS
-          </Link>
-        </header>
+        <Header />
 
         <section className="grid gap-6">
           <article className="rounded-2xl border border-[#ece7e2] dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-[0_14px_30px_rgba(20,20,20,0.06)]">

@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { ArrowRight, Search } from "lucide-react";
 import { Manrope, Space_Grotesk } from "next/font/google";
+import Header from "@/components/Header";
 
 const headingFont = Space_Grotesk({
   subsets: ["latin"],
@@ -21,7 +22,6 @@ type ThemePreference = "light" | "dark" | "system";
 export default function HomePage() {
   const [setNumber, setSetNumber] = useState("");
   const router = useRouter();
-  const pathname = usePathname();
 
   const THEME_KEY = "theme-preference";
   const [themePreference, setThemePreference] = useState<ThemePreference>("system");
@@ -62,34 +62,7 @@ export default function HomePage() {
       className={`${bodyFont.className} min-h-screen text-[#1e1e1e] dark:text-gray-100 bg-[rgb(251,249,247)] bg-[radial-gradient(circle_at_20%_0%,rgba(242,142,46,0.06)_0%,rgba(242,142,46,0)_40%),radial-gradient(circle_at_80%_10%,rgba(30,30,30,0.03)_0%,rgba(30,30,30,0)_45%)] dark:bg-gray-900 dark:bg-[radial-gradient(circle_at_15%_0%,rgba(242,142,46,0.12)_0%,rgba(242,142,46,0)_42%),radial-gradient(circle_at_85%_10%,rgba(255,255,255,0.05)_0%,rgba(255,255,255,0)_45%)]`}
     >
       <div className="mx-auto w-full max-w-7xl px-6 py-8 md:px-10 md:py-10">
-        <header className="mb-16 flex items-center justify-between">
-          <Link href="/" className={`${headingFont.className} text-2xl font-bold tracking-tight`}>
-            BrckTrckr
-          </Link>
-          <nav className="hidden gap-7 text-sm font-medium text-neutral-600 dark:text-neutral-400 md:flex">
-            <Link href="/" className={pathname === "/" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
-              Home
-            </Link>
-            <Link href="/set-look" className={pathname === "/set-look" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
-              Set Search
-            </Link>
-            <Link href="/set-rank" className={pathname === "/set-rank" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
-              Top Sets
-            </Link>
-            <Link href="/about" className={pathname === "/about" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
-              About + FAQ
-            </Link>
-            <Link href="/contact" className={pathname === "/contact" ? "font-bold text-neutral-900 dark:text-white transition-colors hover:text-neutral-900 dark:hover:text-white" : "transition-colors hover:text-neutral-900 dark:hover:text-white"}>
-              Contact
-            </Link>
-          </nav>
-          <Link
-            href="/set-look"
-            className="rounded-xl bg-black px-4 py-2 text-sm font-semibold text-white shadow-sm transition-transform hover:scale-[1.02]"
-          >
-            SEARCH SETS
-          </Link>
-        </header>
+        <Header />
 
         <section className="grid gap-8 md:grid-cols-2 md:items-center">
           <div>
