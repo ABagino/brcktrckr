@@ -63,7 +63,9 @@ export function enrichInventory(items: InventoryRecord[]): InventoryRecord[] {
     const price = parseFloat(item.SoldAvgPrice ?? "0") || 0
     const quantity = item.Quantity || 0
 
-    const staple = stockTotal ? soldTotal / stockTotal : 0
+    // Progressive discount: high-volume sellers (200+) get up to 25% off denominator
+    const volumeDiscount = 0.25 * Math.min(soldTotal / 200, 1)
+    const staple = stockTotal ? soldTotal / (stockTotal * (1 - volumeDiscount)) : 0
     const hotness = stockUnit ? soldUnit / stockUnit : 0
 
     const pieceTimeValueRaw = Math.min(Math.max(staple, hotness), 5)
