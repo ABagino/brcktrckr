@@ -106,6 +106,18 @@ export default function AboutPage() {
                 The mission is simple: make useful LEGO set and part-value analytics easier to access for the community.
               </p>
             </div>
+
+            <hr className="my-6 border-neutral-200 dark:border-gray-700" />
+
+            <h2 className={`${headingFont.className} mb-4 text-2xl font-bold dark:text-gray-100`}>
+              How can I support this?
+            </h2>
+            <p className="text-neutral-700 dark:text-neutral-300">
+              Give me feedback please! What isn&apos;t working, what you want to see work, your thoughts! Please use the{" "}
+              <a href="/contact" className="text-[rgb(242,142,46)] hover:underline font-medium">
+                contact page
+              </a>.
+            </p>
           </article>
 
           <article className="rounded-2xl border border-[#ece7e2] dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-[0_14px_30px_rgba(20,20,20,0.06)]">

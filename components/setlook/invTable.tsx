@@ -272,17 +272,23 @@ export default function InventoryTable({
                             </td>
                           )
 
-                        case "Staple":
+                        case "BulkDemand":
                           return (
                             <td key={key} className="p-1.5 md:p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-xs md:text-base">
-                              {item.Staple ?? "—"}
+                              {item.BulkDemand ?? "—"}
                             </td>
                           )
 
-                        case "Hotness":
+                        case "StoreMagnetism":
                           return (
                             <td key={key} className="p-1.5 md:p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-xs md:text-base">
-                              {item.Hotness ?? "—"}
+                              {item.StoreMagnetism ?? "—"}
+                            </td>
+                          )
+                        case "GeneralSellability":
+                          return (
+                            <td key={key} className="p-1.5 md:p-3 border-b border-gray-200 dark:border-gray-700 align-middle text-xs md:text-base">
+                              {item.GeneralSellability ?? "—"}
                             </td>
                           )
                         case "SoldAvgPrice":
@@ -397,6 +403,12 @@ export default function InventoryTable({
                                           return (
                                             <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">
                                               {part.Hotness ?? "—"}
+                                            </td>
+                                          )
+                                        case "Magnetism":
+                                          return (
+                                            <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">
+                                              {part.Magnetism ?? "—"}
                                             </td>
                                           )
                                         case "ValueMultiply":
