@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import { useSetData } from "./useSetData"
 import InventoryTable from "./invTable"
+import Heatmaps from "./Heatmaps"
 import { SortableKey } from "./helper"
 
 interface SetLookProps {
@@ -205,6 +206,11 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 📊 Heatmaps */}
+      {parsedInventory.length > 0 && !isLoading && (
+        <Heatmaps inventory={parsedInventory} />
       )}
 
       {/* 🧱 Tables */}
