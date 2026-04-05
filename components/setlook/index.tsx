@@ -365,7 +365,9 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
 
       {/* 📊 Set Profile */}
       {parsedInventory.length > 0 && !isLoading && (
-        <PartQuadrantMap inventory={parsedInventory} />
+        <div className="mb-4">
+          <PartQuadrantMap inventory={parsedInventory} />
+        </div>
       )}
 
       {/* 🧱 Tables */}

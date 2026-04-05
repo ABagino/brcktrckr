@@ -395,24 +395,6 @@ export default function InventoryTable({
                                               </div>
                                             </td>
                                           )
-                                        case "Staple":
-                                          return (
-                                            <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">
-                                              {part.Staple ?? "—"}
-                                            </td>
-                                          )
-                                        case "Hotness":
-                                          return (
-                                            <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">
-                                              {part.Hotness ?? "—"}
-                                            </td>
-                                          )
-                                        case "Magnetism":
-                                          return (
-                                            <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">
-                                              {part.Magnetism ?? "—"}
-                                            </td>
-                                          )
                                         case "ValueMultiply":
                                           return (
                                             <td key={key} className="p-1.5 md:p-3 text-xs md:text-base">

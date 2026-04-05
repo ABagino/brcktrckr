@@ -1,26 +1,29 @@
 "use client"
 
 import { useMemo } from "react"
+import Link from "next/link"
 import { InventoryRecord } from "./helper"
 
 // Threshold for considering a metric "high"
 const HIGH_THRESHOLD = 1.0
 
 // Set classification types
-type SetClassification = "Goldmine" | "Magnet Set" | "Staple Set" | "Dead Stock"
+type SetClassification = "Goldmine" | "Crowd Puller" | "Builder's Pack" | "Reliable Return" | "Dead Stock"
 
 // Colors for each classification
 const CLASSIFICATION_COLORS: Record<SetClassification, string> = {
   Goldmine: "#22c55e",
-  "Magnet Set": "#a855f7",
-  "Staple Set": "#3b82f6",
+  "Crowd Puller": "#a855f7",
+  "Builder's Pack": "#3b82f6",
+  "Reliable Return": "#f59e0b",
   "Dead Stock": "#9ca3af",
 }
 
 const CLASSIFICATION_DESCRIPTIONS: Record<SetClassification, string> = {
   Goldmine: "Great mix of bulk, magnetism, and sellability - a well-rounded investment",
-  "Magnet Set": "Draws buyers in to complete collections - good for store traffic",
-  "Staple Set": "Reliable bulk/sellable parts - bread-and-butter builder stock",
+  "Crowd Puller": "Draws buyers in to complete collections - good for store traffic",
+  "Builder's Pack": "Reliable bulk/sellable parts - bread-and-butter builder stock",
+  "Reliable Return": "Consistently sellable parts - dependable turnover with low friction",
   "Dead Stock": "Limited demand across all metrics - may be hard to move",
 }
 
@@ -71,7 +74,7 @@ function getValueDriverStats(inventory: InventoryRecord[]): ValueDriverStats {
 }
 
 // Minimum percentage of valuable parts needed to escape Dead Stock
-const MIN_VALUABLE_PCT = 0.45
+const MIN_VALUABLE_PCT = 0.50
 
 function classifySet(stats: ValueDriverStats, totalParts: number): SetClassification {
   const { totalValuableParts, bulkDriven, magnetismDriven, sellabilityDriven, multiDriver } = stats
@@ -82,22 +85,15 @@ function classifySet(stats: ValueDriverStats, totalParts: number): SetClassifica
   const valuablePct = totalParts > 0 ? totalValuableParts / totalParts : 0
   if (valuablePct < MIN_VALUABLE_PCT) return "Dead Stock"
 
-  // Calculate driver percentages
-  const multiDriverPct = multiDriver / totalValuableParts
-  const magnetismPct = magnetismDriven / totalValuableParts
-  const bulkSellPct = (bulkDriven + sellabilityDriven) / (2 * totalValuableParts)
-
-  // Goldmine: good mix - many parts driven by multiple factors
-  if (multiDriverPct >= 0.4) return "Goldmine"
-
-  // Magnet Set: magnetism is the dominant driver
-  if (magnetismPct >= 0.5 && magnetismPct > bulkSellPct) return "Magnet Set"
-
-  // Staple Set: bulk/sellability are dominant
-  if (bulkSellPct >= 0.3) return "Staple Set"
-
-  // Default to Dead Stock if nothing stands out
-  return "Dead Stock"
+  // Classify by whichever driver count is largest
+  const scores: [number, SetClassification][] = [
+    [multiDriver, "Goldmine"],
+    [magnetismDriven, "Crowd Puller"],
+    [bulkDriven, "Builder's Pack"],
+    [sellabilityDriven, "Reliable Return"],
+  ]
+  scores.sort((a, b) => b[0] - a[0])
+  return scores[0][1]
 }
 
 export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
@@ -109,57 +105,64 @@ export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
 
   return (
     <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 md:p-6 shadow">
-      <div className="mb-6">
+      <div className="mb-4 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
           Set Profile
         </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Parts with Value Multiply above 1.0 and what drives their scores
-        </p>
-      </div>
-
-      {/* Key Metric: Valuable Parts */}
-      <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700">
-        <div className="flex items-center justify-center gap-4">
-          <div className="text-center">
-            <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">
-              {valuablePct}%
-            </div>
-            <div className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-              Valuable Parts
-            </div>
-          </div>
-          <div className="text-amber-600 dark:text-amber-400 text-2xl">•</div>
-          <div className="text-center">
-            <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">
-              {stats.totalValuableParts}
-            </div>
-            <div className="text-sm text-amber-700 dark:text-amber-300 font-medium">
-              of {totalParts} parts
-            </div>
-          </div>
-        </div>
-        <div className="text-xs text-amber-600 dark:text-amber-400 text-center mt-2">
-          Parts with Value Multiply above 1.0 - need 45%+ to escape Dead Stock
-        </div>
-      </div>
-
-      {/* Classification Badge */}
-      <div className="mb-6 flex flex-col items-center">
-        <div
-          className="px-6 py-3 rounded-xl text-white font-bold text-xl shadow-lg"
-          style={{ backgroundColor: CLASSIFICATION_COLORS[classification] }}
+        <Link
+          href="/about#metrics"
+          title="Interested to know how the metrics are calculated? Check out the FAQ"
+          className="flex items-center justify-center w-6 h-6 rounded-full border border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-400 dark:hover:border-gray-400 text-xs font-bold transition-colors"
         >
-          {classification}
+          ?
+        </Link>
+      </div>
+
+      {/* Key Metric + Classification: 2 columns */}
+      <div className="mb-6 grid grid-cols-2 gap-4">
+        {/* Valuable Parts */}
+        <div className="p-4 rounded-xl bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center gap-3">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">
+                {valuablePct}%
+              </div>
+              <div className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                Valuable Parts
+              </div>
+            </div>
+            <div className="text-amber-600 dark:text-amber-400 text-2xl">•</div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-amber-600 dark:text-amber-400">
+                {stats.totalValuableParts}
+              </div>
+              <div className="text-sm text-amber-700 dark:text-amber-300 font-medium">
+                of {totalParts} parts
+              </div>
+            </div>
+          </div>
+          <div className="text-xs text-amber-600 dark:text-amber-400 text-center mt-2">
+            Parts with Value Multiply above 1.0 - need 50%+ to escape Dead Stock
+          </div>
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center max-w-md">
-          {CLASSIFICATION_DESCRIPTIONS[classification]}
-        </p>
+
+        {/* Classification Badge */}
+        <div className="flex flex-col items-center justify-center">
+          <div
+            className="px-6 py-3 rounded-xl text-white font-bold text-xl shadow-lg"
+            style={{ backgroundColor: CLASSIFICATION_COLORS[classification] }}
+          >
+            {classification}
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-3 text-center">
+            {CLASSIFICATION_DESCRIPTIONS[classification]}
+          </p>
+        </div>
       </div>
 
       {/* Stats Grid - Driver Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4 text-center">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-2 text-center">
           <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
             {stats.bulkDriven}
           </div>
@@ -171,7 +174,7 @@ export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
           </div>
         </div>
 
-        <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-4 text-center">
+        <div className="bg-purple-50 dark:bg-purple-900/30 rounded-xl p-2 text-center">
           <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
             {stats.magnetismDriven}
           </div>
@@ -183,7 +186,7 @@ export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
           </div>
         </div>
 
-        <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-4 text-center">
+        <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-2 text-center">
           <div className="text-2xl font-bold text-green-600 dark:text-green-400">
             {stats.sellabilityDriven}
           </div>
@@ -195,7 +198,7 @@ export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
           </div>
         </div>
 
-        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-4 text-center">
+        <div className="bg-amber-50 dark:bg-amber-900/30 rounded-xl p-2 text-center">
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">
             {stats.multiDriver}
           </div>
@@ -208,23 +211,6 @@ export default function PartQuadrantMap({ inventory }: PartQuadrantMapProps) {
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <div className="text-xs text-gray-500 dark:text-gray-400 text-center mb-3">
-          Set Classifications
-        </div>
-        <div className="flex flex-wrap justify-center gap-4 text-sm">
-          {(Object.keys(CLASSIFICATION_COLORS) as SetClassification[]).map((type) => (
-            <div key={type} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: CLASSIFICATION_COLORS[type] }}
-              />
-              <span className="text-gray-600 dark:text-gray-400">{type}</span>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   )
 }
