@@ -363,7 +363,7 @@ export default function SetLook({ searchValue, viewMode }: SetLookProps) {
         </div>
       )}
 
-      {/* 📊 Part Opportunity Map */}
+      {/* 📊 Set Profile */}
       {parsedInventory.length > 0 && !isLoading && (
         <PartQuadrantMap inventory={parsedInventory} />
       )}

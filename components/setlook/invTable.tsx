@@ -193,7 +193,8 @@ export default function InventoryTable({
                                     alt={item.ItemNumber}
                                     width={70}
                                     height={50}
-                                    className="h-[35px] md:h-[50px] w-auto object-contain"
+                                    className="object-contain"
+                                    style={{ height: 'auto', width: 'auto', maxHeight: '35px', maxWidth: '50px' }}
                                     loading="lazy"
                                     decoding="async"
                                     unoptimized
@@ -371,7 +372,8 @@ export default function InventoryTable({
                                                     alt={part.ItemNumber}
                                                     width={70}
                                                     height={45}
-                                                    className="h-[30px] md:h-[45px] w-auto object-contain"
+                                                    className="object-contain"
+                                                    style={{ height: 'auto', width: 'auto', maxHeight: '30px', maxWidth: '45px' }}
                                                     loading="lazy"
                                                     decoding="async"
                                                     unoptimized

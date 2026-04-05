@@ -61,21 +61,44 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
 
+/** Round a number to 3 decimal places */
+function round3(value: number): number {
+  return Math.round(value * 1000) / 1000
+}
+
 /** Safe divide to avoid division by zero */
 function safeDivide(numerator: number, denominator: number, fallback = 0): number {
   return denominator === 0 ? fallback : numerator / denominator
 }
 
 /**
- * Bulk Demand: "Do buyers tend to buy lots of this part in large quantities?"
- * High when parts are purchased in bulk with proven sales volume.
+ * Bulk Demand: "Do buyers commonly buy large real-world quantities of this part across a deep, proven market?"
+ *
+ * Much more aggressive scoring — most parts should score well below 1.
+ * Only genuinely strong builder/bulk parts should exceed 1.
+ * Elite bulk parts can still reach 4–5.
+ *
  * Range: 0–5
  */
 export function calculateBulkDemand(soldUnitQty: number, soldTotalQty: number): number {
-  const bulkCore = safeDivide(soldUnitQty, Math.max(soldTotalQty, 1))
-  const bulkProof = Math.log(1 + soldUnitQty) / Math.log(1 + 5000)
-  const bulkDemand = 5 * Math.pow(Math.min(bulkCore / 8, 1), 0.7) * Math.pow(Math.min(bulkProof, 1), 0.8)
-  return parseFloat(clamp(bulkDemand, 0, 5).toFixed(3))
+  // BulkVolumeScore: rewards high sold unit volume (stricter threshold)
+  const bulkVolumeScore = clamp(Math.log(1 + soldUnitQty) / Math.log(1 + 3000), 0, 1)
+
+  // BulkProofScore: rewards many sold lots (stricter threshold for proven market depth)
+  const bulkProofScore = clamp(Math.log(1 + soldTotalQty) / Math.log(1 + 50000), 0, 1)
+
+  // BasketScore: rewards high units per lot
+  const unitsPerLot = safeDivide(soldUnitQty, Math.max(soldTotalQty, 1))
+  const basketScore = clamp(unitsPerLot / 0.10, 0, 1)
+
+  // Final Bulk Demand: aggressive exponents compress scores heavily
+  const bulkDemand =
+    5 *
+    Math.pow(bulkVolumeScore, 1.6) *
+    Math.pow(bulkProofScore, 1.8) *
+    (0.80 + 0.20 * basketScore)
+
+  return round3(clamp(bulkDemand, 0, 5))
 }
 
 /**
@@ -91,15 +114,25 @@ export function calculateStoreMagnetism(soldTotalQty: number, stockTotalQty: num
 }
 
 /**
- * General Sellability: "Does this part just reliably sell well in general?"
- * High when there's deep sales history with healthy sell-through.
+ * General Sellability: "Does this part reliably sell in general?"
+ *
+ * Much more aggressive scoring — most parts should score well below 1.
+ * Only strong, widely used parts should exceed 1.
+ * Elite parts can reach 3–5.
+ *
  * Range: 0–5
  */
 export function calculateGeneralSellability(soldTotalQty: number, stockTotalQty: number): number {
-  const sellDepth = Math.log(1 + soldTotalQty) / Math.log(1 + 5000)
-  const sellBalance = safeDivide(soldTotalQty, Math.max(stockTotalQty, 1))
-  const generalSellability = 5 * Math.pow(Math.min(sellDepth, 1), 0.9) * Math.pow(Math.min(sellBalance / 1, 1), 0.6)
-  return parseFloat(clamp(generalSellability, 0, 5).toFixed(3))
+  // SellDepth: rewards deep sales history (stricter threshold)
+  const sellDepth = clamp(Math.log(1 + soldTotalQty) / Math.log(1 + 20000), 0, 1)
+
+  // SellBalance: rewards healthy sell-through ratio
+  const sellBalance = clamp(safeDivide(soldTotalQty, Math.max(stockTotalQty, 1)), 0, 1)
+
+  // Final Sellability: aggressive exponents compress scores heavily
+  const sellability = 5 * Math.pow(sellDepth, 2.2) * Math.pow(sellBalance, 1.5)
+
+  return round3(clamp(sellability, 0, 5))
 }
 
 export function enrichInventory(items: InventoryRecord[]): InventoryRecord[] {
@@ -114,7 +147,7 @@ export function enrichInventory(items: InventoryRecord[]): InventoryRecord[] {
     const storeMagnetism = calculateStoreMagnetism(soldTotal, stockTotal)
     const generalSellability = calculateGeneralSellability(soldTotal, stockTotal)
 
-    const pieceTimeValueRaw = Math.min(Math.max(generalSellability, bulkDemand), 5)
+    const pieceTimeValueRaw = Math.min(Math.max(generalSellability, bulkDemand, storeMagnetism), 5)
     const pieceTimeValue = price * pieceTimeValueRaw
     const totalValue = quantity * pieceTimeValue
 
